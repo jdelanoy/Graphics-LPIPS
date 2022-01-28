@@ -12,17 +12,20 @@ import collections
 
 class TwoAFCDataset(BaseDataset):
     def initialize(self, dataroots, load_size=64, Trainset = False, maxNbPatches = 205):
-        root_refPatches = 'D:\\Deep\\Graphics_LPIPS\\dataset\\References_patches_withVP_threth0.6'
-        root_distPatches = 'D:\\Deep\\Graphics_LPIPS\\dataset\\PlaylistsStimuli_patches_withVP_threth0.6'
+        print("in 2afcdataset", dataroots)
+        if(not isinstance(dataroots,list)):
+            dataroots = [dataroots,]
+        dirroots = os.path.dirname(dataroots[0])+'/'
+        root_refPatches = dirroots+'References_patches_withVP_threth0.6'
+        root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
         if(Trainset):
-            root_judges = 'D:\\Deep\\Graphics_LPIPS\\dataset\\judge_trainingset'
+            root_judges = dirroots+'judge_trainingset'
         else:
-            root_judges = 'D:\\Deep\\Graphics_LPIPS\\dataset\\judge_testset'
+            root_judges = dirroots+'judge_testset'
         nbiteration = 1
         stimuliId = 0 
         
-        if(not isinstance(dataroots,list)):
-            dataroots = [dataroots,]
+
         self.load_size = load_size
         
         #shuffle input csv file
@@ -32,7 +35,7 @@ class TwoAFCDataset(BaseDataset):
             print('SHUFFLINGGGGGGGGGGGG!!!')
             for datafile in dataroots:
                 count_inputFile = count_inputFile + 1
-                shuffledfileName = 'D:\\Deep\\Graphics_LPIPS\\dataset\\'+ 'Trainset_shuffled_' + str(count_inputFile) +'.csv'
+                shuffledfileName = dirroots+ 'Trainset_shuffled_' + str(count_inputFile) +'.csv'
                 shuffled_inputfile.append(shuffledfileName)
                 with open(datafile, 'r') as r, open(shuffledfileName, 'w') as w:
                     data = r.readlines()

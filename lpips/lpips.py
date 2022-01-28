@@ -171,9 +171,9 @@ class Dist2LogitLayer(nn.Module):
         #return self.model.forward(torch.cat((d0,d1,d0-d1,d0/(d1+eps),d1/(d0+eps)),dim=1)) # default LPIPS
         
 
-class BCERankingLoss(nn.Module):
+class L1Loss(nn.Module):
     def __init__(self, chn_mid=32):
-        super(BCERankingLoss, self).__init__()
+        super(L1Loss, self).__init__()
         self.loss = torch.nn.L1Loss() #MAE better if we have patches (according to Bosse et al.) 
 
     def forward(self, d0, judge):

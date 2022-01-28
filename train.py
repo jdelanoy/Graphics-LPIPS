@@ -62,10 +62,10 @@ if __name__ == '__main__':
 
     # load data from all test sets 
     # The random patches for the test set are only sampled once at the beginning of training in order to avoid noise in the validation loss.
-    Testset = 'D:\\Deep\\Graphics_LPIPS\\dataset\\TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv'
+    Testset = os.path.dirname(opt.datasets[0])+'/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv'
     data_loader_testSet = dl.CreateDataLoader(Testset,dataset_mode='2afc', Nbpatches= opt.npatches, 
                                               load_size = load_size, batch_size=opt.batch_size, nThreads=opt.nThreads)
-    test_TestSet = Test_TestSet(opt)
+    ####test_TestSet = Test_TestSet(opt)
     total_steps = 0
     # fid = open(os.path.join(opt.checkpoints_dir,opt.name,'train_log.txt'),'w+')
     # f_hyperParam = open(os.path.join(opt.checkpoints_dir,opt.name,'tuning_hyperparam.csv'),'a') 
@@ -133,8 +133,8 @@ if __name__ == '__main__':
             # Evaluate the Test set at the End of the epoch
             if epoch % opt.testset_freq == 0:
                 res_testset = lpips.Testset_DSIS(data_loader_testSet, trainer.forward, trainer.rankLoss.forward, name=Testset) # SROCC & loss
-                for Tkey in res_testset.keys():
-                    test_TestSet.plot_TestSet_save(epoch=epoch, res=res_testset, keys=[Tkey,],  name=Tkey, to_plot=opt.train_plot, what_to_plot = 'TestSet_Res')
+                ####for Tkey in res_testset.keys():
+                ####    test_TestSet.plot_TestSet_save(epoch=epoch, res=res_testset, keys=[Tkey,],  name=Tkey, to_plot=opt.train_plot, what_to_plot = 'TestSet_Res')
                 info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(Loss_trainset) + "," + str(res_testset['loss']) + "," + str(res_testset['SROCC']) + "\n"
             else:
                 info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(Loss_trainset) + "\n"

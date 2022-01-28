@@ -69,7 +69,7 @@ class Trainer():
 
         if self.is_train: # training mode
             # extra network on top to map the distance d0 (average over the patches) of the stimulus image to the MOS
-            self.rankLoss = lpips.BCERankingLoss()
+            self.rankLoss = lpips.L1Loss()
             self.lr = lr
             self.old_lr = lr
             self.optimizer_net = torch.optim.Adam(self.parameters, lr=lr, betas=(beta1, 0.999))
