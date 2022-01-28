@@ -15,10 +15,10 @@ import csv
 class Test_TestSet():
     def __init__(self, opt):
         self.testset_dir = os.path.join(opt.checkpoints_dir, opt.name, 'TestSet')
-        #self.Lpips_dir = os.path.join(opt.checkpoints_dir, opt.name, 'Lpips_res')
+        self.Lpips_dir = os.path.join(opt.checkpoints_dir, opt.name, 'Lpips_res')
         self.outfilepath = os.path.join(opt.checkpoints_dir, opt.name)
         util.mkdirs([self.testset_dir,])
-        util.mkdirs([self.Lpips_dir,])
+        #util.mkdirs([self.Lpips_dir,])
         
     def Lpips_TestSet(self, epoch, Net, ModelPath, use_gpu, TestSet_csvFile):
         # Initializing the model
