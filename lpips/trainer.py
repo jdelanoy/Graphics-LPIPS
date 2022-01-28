@@ -138,7 +138,9 @@ class Trainer():
         NbuniqueStimuli = len(mos) 
         NbpatchesPerStimulus = len(judge)//NbuniqueStimuli # we selected the same nb of patches for each stimulus 
         
-        self.mos = torch.Tensor(mos).to(device=self.gpu_ids[0])
+        self.mos = torch.Tensor(mos)
+        if(self.use_gpu):
+            self.mos =self.mos.to(device=self.gpu_ids[0])
         self.mos = torch.reshape(self.mos, (NbuniqueStimuli,1,1,1))
         
         self.d0_reshaped = torch.reshape(self.d0, (NbuniqueStimuli,NbpatchesPerStimulus,1,1)) #(5,10,1,1) : 5 stimuli * 10 patches/stimulus => after aggregation : 5 MOS_predicted values
@@ -217,7 +219,7 @@ class Trainer():
         np.savetxt(os.path.join(self.save_dir, 'done_flag'),[flag,],fmt='%i')
 
 
-def Testset_DSIS(data_loader, func, funcLoss = None, name=''): #added by yana
+def Testset_DSIS(data_loader, opt, func, funcLoss = None, name=''): #added by yana
     total = 0
     SROCC = 0
     val_loss = 0
@@ -231,8 +233,11 @@ def Testset_DSIS(data_loader, func, funcLoss = None, name=''): #added by yana
     
     for data in tqdm(data_loader.load_data(), desc=name):
         with torch.no_grad(): 
-            d0 = func(data['ref'],data['p0']).to("cuda:0") # use_gpu flag activated
-            gt = data['judge'].to("cuda:0")
+            d0 = func(data['ref'],data['p0'])
+            gt = data['judge']
+            if(opt.use_gpu):
+                d0 = d0.to(device=opt.gpu_ids[0])
+                gt = gt.to(device=opt.gpu_ids[0])
             
             stimulus = data['stimuli_id']
             #stimulus = [p0path.split("\\PlaylistsStimuli_patches_withVP\\")[1] for p0path in data['p0_path']]
@@ -245,7 +250,9 @@ def Testset_DSIS(data_loader, func, funcLoss = None, name=''): #added by yana
             NbuniqueStimuli = len(mos) 
             NbpatchesPerStimulus = len(gt_)//NbuniqueStimuli 
         
-            MOS = torch.Tensor(mos).to("cuda:0")
+            MOS = torch.Tensor(mos)
+            if(opt.use_gpu):
+                MOS = MOS.to(device=opt.gpu_ids[0])
             MOS = torch.reshape(MOS, (NbuniqueStimuli,1,1,1))
         
             d0_reshaped = torch.reshape(d0, (NbuniqueStimuli,NbpatchesPerStimulus,1,1)) 
