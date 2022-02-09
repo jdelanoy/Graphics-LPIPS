@@ -31,7 +31,7 @@ class TwoAFCDataset(BaseDataset):
         if(Trainset):
             shuffled_inputfile = [] 
             count_inputFile = 0
-            print('SHUFFLINGGGGGGGGGGGG!!!')
+            print('\t---Shuffling dataset')
             for datafile in dataroots:
                 count_inputFile = count_inputFile + 1
                 shuffledfileName = dirroots+ 'Trainset_shuffled_' + str(count_inputFile) +'.csv'
@@ -58,7 +58,7 @@ class TwoAFCDataset(BaseDataset):
                 line_count = 0
                 for row in csv_reader:
                     if line_count == 0:
-                        print(f'Column names are {", ".join(row)}')
+                        print(f'\tColumn names are {", ".join(row)}')
                         line_count += 1
                     else: # choose patches to load
                         model = row[0]
@@ -105,15 +105,15 @@ class TwoAFCDataset(BaseDataset):
                                 self.stimuliId.append(stimuliId)
                         line_count += 1
                         
-                print(f'Processed {line_count-1} lines (distorted stimuli).')
+                print(f'\tProcessed {line_count-1} lines (distorted stimuli).')
                 
-        print('Total nb of patches to load: %.1f' %len(self.p0_paths)) # must be equal to maxNbPatches * nb rows * nb iterations 
-        print('These patches correspond to %d stimuli (with repetions) = %d optimizations'%(stimuliId, stimuliId))
+        print('\tTotal nb of patches to load: %.1f' %len(self.p0_paths)) # must be equal to maxNbPatches * nb rows * nb iterations 
+        print('\tThese patches correspond to %d stimuli (with repetions) = %d optimizations'%(stimuliId, stimuliId))
         # occurence_stimuliId = collections.Counter(self.stimuliId)
         # print(occurence_stimuliId)
         uniquestimulusID = set(self.stimuliId)
         NbuniquestimulusID = len(uniquestimulusID)
-        print('nb of stimulusID to load %.1f' %NbuniquestimulusID)
+        print('\tnb of stimulusID to load %.1f' %NbuniquestimulusID)
 
         transform_list = []
         transform_list.append(transforms.Resize(load_size))

@@ -76,8 +76,11 @@ if __name__ == '__main__':
     start_time = time.time()
     for epoch in range(1, opt.nepoch + opt.nepoch_decay + 1):
             # Load training data to sample random patches every epoch
+            data_start_time = time.time()
             data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', trainset=True, Nbpatches=opt.npatches, 
                                               load_size = load_size, batch_size=opt.batch_size, serial_batches=True, nThreads=opt.nThreads)
+            print(f"Time to load data: {time.time()-data_start_time}")
+
             dataset = data_loader.load_data()
             dataset_size = len(data_loader)
             D = len(dataset)
