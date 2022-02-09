@@ -200,15 +200,19 @@ class Trainer():
         print('Loading network from %s'%save_path)
         network.load_state_dict(torch.load(save_path))
 
-    def update_learning_rate(self,nepoch_decay):
-        lrd = self.lr / nepoch_decay
-        lr = self.old_lr - lrd
+    def update_learning_rate(self,nepoch_decay,decay_type):
+        if (decay_type == 'linear'): 
+            lrd = self.lr / nepoch_decay
+            lr = self.old_lr - lrd
 
-        for param_group in self.optimizer_net.param_groups:
-            param_group['lr'] = lr
+            for param_group in self.optimizer_net.param_groups:
+                param_group['lr'] = lr
 
-        print('update lr [%s] decay: %f -> %f' % (type,self.old_lr, lr))
-        self.old_lr = lr
+            print('update lr [%s] decay: %f -> %f' % (type,self.old_lr, lr))
+            self.old_lr = lr
+        elif (decay_type == 'divide'):
+            self.lr = self.lr / 10
+            print('update lr [%s] decay:  -> %f' % (type,self.lr))
 
 
     def get_image_paths(self):

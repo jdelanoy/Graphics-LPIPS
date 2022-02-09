@@ -24,6 +24,7 @@ if __name__ == '__main__':
     parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
     parser.add_argument('--nepoch', type=int, default=5, help='# epochs at base learning rate')
     parser.add_argument('--nepoch_decay', type=int, default=5, help='# additional epochs at linearly learning rate')
+    parser.add_argument('--decay_type', type=str, default='divide', help='linear or divide', choices=['divide','linear'])
     parser.add_argument('--npatches', type=int, default=65, help='# randomly sampled image patches')
     parser.add_argument('--nInputImg', type=int, default=4, help='# stimuli/images in each batch')
     parser.add_argument('--lr', type=float, default=0.0001, help='# initial learning rate')
@@ -150,8 +151,9 @@ if __name__ == '__main__':
 
             #f_hyperParam.write(info)
             
-            if epoch > opt.nepoch and epoch%5==0:
-                trainer.update_learning_rate(opt.nepoch_decay)
+            if (opt.decay_type == 'linear' and epoch > opt.nepoch) or (opt.decay_type == 'divide' and epoch%opt.nepoch_decay == 0):
+                trainer.update_learning_rate(opt.nepoch_decay, opt.decay_type)
+            
 
     # trainer.save_done(True)
     # fid.close()
