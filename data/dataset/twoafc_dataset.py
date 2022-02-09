@@ -12,7 +12,6 @@ import collections
 
 class TwoAFCDataset(BaseDataset):
     def initialize(self, dataroots, load_size=64, Trainset = False, maxNbPatches = 205):
-        print("in 2afcdataset", dataroots)
         if(not isinstance(dataroots,list)):
             dataroots = [dataroots,]
         dirroots = os.path.dirname(dataroots[0])+'/'
@@ -49,9 +48,10 @@ class TwoAFCDataset(BaseDataset):
         self.ref_paths = []
         self.p0_paths = []
         self.judge_paths = []
+        self.judges = []
         self.stimuliId = []
         
-        print(dataroots)
+        #print(dataroots)
         for datafile in dataroots:
             with open(datafile) as csv_file:
                 csv_reader = csv.reader(csv_file, delimiter=',')
@@ -89,6 +89,7 @@ class TwoAFCDataset(BaseDataset):
                                     stimuluspath = os.path.join(root_distPatches, stimuluspatch)
                                     self.p0_paths.append(stimuluspath)
                                     self.judge_paths.append(judgepath) # associate the same judge/MOS to all patches.
+                                    self.judges.append(MOS)
                                     self.stimuliId.append(stimuliId) # associate the same StimulusID to all patches.
                             
                             # complete with random patches to reach the max nb of patches
@@ -100,15 +101,14 @@ class TwoAFCDataset(BaseDataset):
                                 stimuluspath = os.path.join(root_distPatches, stimuluspatch)
                                 self.p0_paths.append(stimuluspath)
                                 self.judge_paths.append(judgepath)
+                                self.judges.append(MOS)
                                 self.stimuliId.append(stimuliId)
-                        
                         line_count += 1
                         
-                print(f'Processed {line_count} lines (distorted stimuli).')
+                print(f'Processed {line_count-1} lines (distorted stimuli).')
                 
         print('Total nb of patches to load: %.1f' %len(self.p0_paths)) # must be equal to maxNbPatches * nb rows * nb iterations 
         print('These patches correspond to %d stimuli (with repetions) = %d optimizations'%(stimuliId, stimuliId))
-       
         # occurence_stimuliId = collections.Counter(self.stimuliId)
         # print(occurence_stimuliId)
         uniquestimulusID = set(self.stimuliId)
@@ -160,14 +160,17 @@ class TwoAFCDataset(BaseDataset):
         ref_img_ = Image.open(ref_path).convert('RGB')
         ref_img = self.transform(ref_img_)
 
-        judge_path = self.judge_paths[index]
-        judge_img = np.load(judge_path).reshape((1,1,1,)) # [0,1]
+        # judge_path = self.judge_paths[index]
+        # judge_img = np.load(judge_path).reshape((1,1,1,)) # [0,1]
+        # judge_img = torch.FloatTensor(judge_img)
+
+        judge_img = np.array([self.judges[index]]).reshape((1,1,1,)) # [0,1]
         judge_img = torch.FloatTensor(judge_img)
         
         stimuli_id = self.stimuliId[index]
         
         return {'p0': p0_img, 'ref': ref_img, 'judge': judge_img,
-            'p0_path': p0_path, 'ref_path': ref_path, 'judge_path': judge_path, 'stimuli_id': stimuli_id}
+            'p0_path': p0_path, 'ref_path': ref_path, 'stimuli_id': stimuli_id}
 
     def __len__(self):
         return len(self.p0_paths)
