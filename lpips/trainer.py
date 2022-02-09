@@ -276,7 +276,10 @@ def Testset_DSIS(data_loader, opt, func, funcLoss = None, name=''): #added by ya
             MOSpredicteds += MOSpredicted
             MOSs += MOS
 
-    srocc = stats.spearmanr(MOSpredicteds, MOSs)[0]
+    #print(MOSpredicteds,MOSs)
+    #MOSpredicteds=[mos.cpu().numpy for mos in MOSpredicteds]
+    #MOSs=[mos.cpu().numpy for mos in MOSs]
+    srocc = 0#stats.spearmanr(MOSpredicteds, MOSs)[0]
     loss = val_loss / val_steps
     MSE = val_MSE / val_steps
     

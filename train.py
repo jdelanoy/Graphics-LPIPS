@@ -3,7 +3,7 @@ cudnn.benchmark=False
 
 import numpy as np
 import time
-import os
+import os, sys
 import lpips
 from data import data_loader as dl
 import argparse
@@ -51,6 +51,12 @@ if __name__ == '__main__':
     opt.save_dir = os.path.join(opt.checkpoints_dir,opt.name)
     if(not os.path.exists(opt.save_dir)):
         os.mkdir(opt.save_dir)
+    
+    original_stdout = sys.stdout
+    with open(os.path.join(opt.save_dir,'params.txt'), 'w') as f:
+        sys.stdout = f # Change the standard output to the file we created.
+        print(opt)
+        sys.stdout = original_stdout 
 
     # initialize model
     trainer = lpips.Trainer()
