@@ -17,6 +17,26 @@ from itertools import groupby
 from operator import itemgetter
 from statistics import mean
 
+
+def average_per_stimuli(predicted_score, gt_score, stimulus):
+    # In the following: we aggregate gt & d0 per stimulus (over all the patches of the same stimulus)
+    judge = (gt_score).flatten().tolist()
+
+    mos = [mean(map(itemgetter(1), group))
+        for key, group in groupby(zip(stimulus, judge), key=itemgetter(0))]
+    
+    NbuniqueStimuli = len(mos) 
+    NbpatchesPerStimulus = len(judge)//NbuniqueStimuli # we selected the same nb of patches for each stimulus 
+    
+    mos = torch.Tensor(mos, device=gt_score.device)
+    mos = torch.reshape(mos, (NbuniqueStimuli,1,1,1))
+    
+    predicted_score_reshaped = torch.reshape(predicted_score, (NbuniqueStimuli,NbpatchesPerStimulus,1,1)) #(5,10,1,1) : 5 stimuli * 10 patches/stimulus => after aggregation : 5 MOS_predicted values
+    mos_predict = torch.mean(predicted_score_reshaped, 1, True)
+
+    return mos_predict, mos   
+
+
 class Trainer():
     def name(self):
         return self.model_name
@@ -69,7 +89,7 @@ class Trainer():
 
         if self.is_train: # training mode
             # extra network on top to map the distance d0 (average over the patches) of the stimulus image to the MOS
-            self.rankLoss = lpips.L1Loss()
+            self.loss = lpips.L1Loss()
             self.lr = lr
             self.old_lr = lr
             self.optimizer_net = torch.optim.Adam(self.parameters, lr=lr, betas=(beta1, 0.999))
@@ -81,7 +101,7 @@ class Trainer():
             self.net.to(gpu_ids[0])
             self.net = torch.nn.DataParallel(self.net, device_ids=gpu_ids)
             if(self.is_train):
-                self.rankLoss = self.rankLoss.to(device=gpu_ids[0]) # just put this on GPU0
+                self.loss = self.loss.to(device=gpu_ids[0]) # just put this on GPU0
 
         if(printNet):
             print('---------- Networks initialized -------------')
@@ -125,35 +145,14 @@ class Trainer():
         self.var_ref = Variable(self.input_ref,requires_grad=True)
         self.var_p0 = Variable(self.input_p0,requires_grad=True)
 
+
     def forward_train(self): # run forward pass
         self.d0 = self.forward(self.var_ref, self.var_p0)
         self.var_judge = Variable(1.*self.input_judge).view(self.d0.size()) # self.var_judge is the same as self.input_judge
 
-        # In the following: we aggregate var_judge & d0 per stimulus (over all the patches of the same stimulus)
-        judge = (self.var_judge).flatten().tolist()
+        mos_predict, mos = average_per_stimuli(self.d0, self.var_judge, self.stimulus)
 
-        mos = [mean(map(itemgetter(1), group))
-            for key, group in groupby(zip(self.stimulus, judge), key=itemgetter(0))]
-        
-        NbuniqueStimuli = len(mos) 
-        NbpatchesPerStimulus = len(judge)//NbuniqueStimuli # we selected the same nb of patches for each stimulus 
-        
-        self.mos = torch.Tensor(mos)
-        if(self.use_gpu):
-            self.mos =self.mos.to(device=self.gpu_ids[0])
-        self.mos = torch.reshape(self.mos, (NbuniqueStimuli,1,1,1))
-        
-        self.d0_reshaped = torch.reshape(self.d0, (NbuniqueStimuli,NbpatchesPerStimulus,1,1)) #(5,10,1,1) : 5 stimuli * 10 patches/stimulus => after aggregation : 5 MOS_predicted values
-        self.mos_predict = torch.mean(self.d0_reshaped, 1, True)
-        
-        # For verification:
-        # res = 0
-        # for v in d0:
-            # res += v
-        # print('sum Lpips values %.6f'%res)
-        # print('sum Lpips values/NbPatchesPerStimulus = %.6f, which must be equal to sum mos_predicted: %.6f'%(res/NbpatchesPerStimulus, torch.sum(self.mos_predict)))
-
-        self.loss_total = self.rankLoss.forward(self.mos_predict, self.mos) # with aggregation
+        self.loss_total = self.loss.forward(mos_predict, mos) # with aggregation
        
         return self.loss_total
 
@@ -244,23 +243,8 @@ def Testset_DSIS(data_loader, opt, func, funcLoss = None, name=''): #added by ya
                 gt = gt.to(device=opt.gpu_ids[0])
             
             stimulus = data['stimuli_id']
-            #stimulus = [p0path.split("\\PlaylistsStimuli_patches_withVP\\")[1] for p0path in data['p0_path']]
-            #stimulus = [stim.rsplit("_P", 1)[0] for stim in stimulus] # split according to the last occurence of "_P"
 
-            gt_ = (gt).cpu().numpy().flatten().tolist()
-        
-            mos = [mean(map(itemgetter(1), group))
-                for key, group in groupby(zip(stimulus, gt_), key=itemgetter(0))]
-            NbuniqueStimuli = len(mos) 
-            NbpatchesPerStimulus = len(gt_)//NbuniqueStimuli 
-        
-            MOS = torch.Tensor(mos)
-            if(opt.use_gpu):
-                MOS = MOS.to(device=opt.gpu_ids[0])
-            MOS = torch.reshape(MOS, (NbuniqueStimuli,1,1,1))
-        
-            d0_reshaped = torch.reshape(d0, (NbuniqueStimuli,NbpatchesPerStimulus,1,1)) 
-            MOSpredicted = torch.mean(d0_reshaped, 1, True)
+            MOSpredicted, MOS = average_per_stimuli(d0, gt, stimulus)
             
             loss = funcLoss(MOSpredicted, MOS) 
             val_loss += loss.cpu().numpy()#detach().numpy() (if we remove "with torch.no_grad():" )

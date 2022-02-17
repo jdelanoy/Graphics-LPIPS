@@ -142,7 +142,7 @@ if __name__ == '__main__':
 
             # Evaluate the Test set at the End of the epoch
             if epoch % opt.testset_freq == 0:
-                res_testset = lpips.Testset_DSIS(data_loader_testSet, opt, trainer.forward, trainer.rankLoss.forward, name=Testset) # SROCC & loss
+                res_testset = lpips.Testset_DSIS(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
                 for Tkey in res_testset.keys():
                     test_TestSet.plot_TestSet_save(epoch=epoch, res=res_testset, keys=[Tkey,],  name=Tkey, to_plot=opt.train_plot, what_to_plot = 'TestSet_Res')
                 info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(Loss_trainset) + "," + str(res_testset['loss']) + "," + str(res_testset['SROCC']) + "\n"
