@@ -28,7 +28,7 @@ def average_per_stimuli(predicted_score, gt_score, stimulus):
     NbuniqueStimuli = len(mos) 
     NbpatchesPerStimulus = len(judge)//NbuniqueStimuli # we selected the same nb of patches for each stimulus 
     
-    mos = torch.Tensor(mos, device=gt_score.device)
+    mos = torch.Tensor(mos).to(gt_score.device)
     mos = torch.reshape(mos, (NbuniqueStimuli,1,1,1))
     
     predicted_score_reshaped = torch.reshape(predicted_score, (NbuniqueStimuli,NbpatchesPerStimulus,1,1)) #(5,10,1,1) : 5 stimuli * 10 patches/stimulus => after aggregation : 5 MOS_predicted values
