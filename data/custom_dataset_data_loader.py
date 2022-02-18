@@ -1,6 +1,8 @@
 import torch.utils.data
 from data.base_data_loader import BaseDataLoader
 import os
+import random
+import numpy as np
 
 def CreateDataset(dataroots,dataset_mode='2afc',load_size=64, trainset=False , Nbpatches = 205):
     dataset = None
@@ -17,6 +19,12 @@ def CreateDataset(dataroots,dataset_mode='2afc',load_size=64, trainset=False , N
     dataset.initialize(dataroots,load_size=load_size,Trainset = trainset, maxNbPatches = Nbpatches)
     return dataset
 
+
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+
 class CustomDatasetDataLoader(BaseDataLoader):
     def name(self):
         return 'CustomDatasetDataLoader'
@@ -26,12 +34,18 @@ class CustomDatasetDataLoader(BaseDataLoader):
         if(not isinstance(data_csvfile,list)):
             data_csvfile = [data_csvfile,]
 
+
+        g = torch.Generator()
+        g.manual_seed(0)
+
         self.dataset = CreateDataset(data_csvfile,dataset_mode=dataset_mode,load_size=load_size, trainset=trainset, Nbpatches=Nbpatches)
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=batch_size,
             shuffle=not serial_batches,
-            num_workers=int(nThreads))
+            num_workers=int(nThreads),
+            worker_init_fn=seed_worker,
+            generator=g)
             
 
     def initialize2(self, datafolders, dataroot='./dataset',dataset_mode='2afc',load_size=64,batch_size=1,serial_batches=True, nThreads=1):

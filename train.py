@@ -11,6 +11,9 @@ from util.visualizer import Visualizer
 from IPython import embed
 from Test_TestSet import Test_TestSet
 import csv
+import random
+random.seed(0)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

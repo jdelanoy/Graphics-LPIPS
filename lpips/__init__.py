@@ -5,6 +5,9 @@ from __future__ import print_function
 
 import numpy as np
 import torch
+torch.manual_seed(0)
+np.random.seed(0)
+
 # from torch.autograd import Variable
 
 from lpips.trainer import *
