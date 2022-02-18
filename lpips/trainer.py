@@ -18,8 +18,12 @@ from operator import itemgetter
 from statistics import mean
 
 
-def average_per_stimuli(predicted_score, gt_score, stimulus):
+def average_per_stimuli(d0, gt_score, stimulus):
     # In the following: we aggregate gt & d0 per stimulus (over all the patches of the same stimulus)
+    predicted_score, patch_weight = d0
+    #print(gt_score.flatten())
+    #print(predicted_score.flatten())
+    #print(patch_weight.flatten())
     judge = (gt_score).flatten().tolist()
 
     mos = [mean(map(itemgetter(1), group))
@@ -32,7 +36,17 @@ def average_per_stimuli(predicted_score, gt_score, stimulus):
     mos = torch.reshape(mos, (NbuniqueStimuli,1,1,1))
     
     predicted_score_reshaped = torch.reshape(predicted_score, (NbuniqueStimuli,NbpatchesPerStimulus,1,1)) #(5,10,1,1) : 5 stimuli * 10 patches/stimulus => after aggregation : 5 MOS_predicted values
-    mos_predict = torch.mean(predicted_score_reshaped, 1, True)
+    patch_weight_reshaped = torch.reshape(patch_weight, (NbuniqueStimuli,NbpatchesPerStimulus,1,1))
+
+    product_val = torch.mul(patch_weight_reshaped,predicted_score_reshaped)
+    #print("product_val", product_val.shape)
+    sum_product_val = torch.sum(product_val, 1, True)
+    #print("sum_product_val", sum_product_val.shape)
+    norm_factor = torch.sum(patch_weight_reshaped,1,True)
+    #print("norm_factor", norm_factor.shape)
+    mos_predict = torch.div(sum_product_val, norm_factor)
+
+    #mos_predict = torch.mean(predicted_score_reshaped, 1, True)
 
     return mos_predict, mos   
 
@@ -42,7 +56,7 @@ class Trainer():
         return self.model_name
 
     def initialize(self, model='lpips', net='alex', colorspace='Lab', pnet_rand=False, pnet_tune=False, model_path=None,
-            use_gpu=True, printNet=False, spatial=False, 
+            use_gpu=True, printNet=False, spatial=False, weight_patch=False, fc_on_diff=False,
             is_train=False, lr=.001, beta1=0.5, version='0.1', gpu_ids=[0]):
         '''
         INPUTS
@@ -73,7 +87,7 @@ class Trainer():
         if(self.model == 'lpips'): # pretrained net + linear layer
             self.net = lpips.LPIPS(pretrained=not is_train, net=net, version=version, lpips=True, spatial=spatial, 
                 pnet_rand=pnet_rand, pnet_tune=pnet_tune, 
-                use_dropout=True, model_path=model_path, eval_mode=False)
+                use_dropout=True, model_path=model_path, eval_mode=False, fc_on_diff=fc_on_diff, weight_patch=weight_patch)
         elif(self.model=='baseline'): # pretrained network
             self.net = lpips.LPIPS(pnet_rand=pnet_rand, net=net, lpips=False)
         elif(self.model in ['L2','l2']):
@@ -127,7 +141,7 @@ class Trainer():
 
     def clamp_weights(self):
         for module in self.net.modules():
-            if(hasattr(module, 'weight') and module.kernel_size==(1,1)):
+            if(hasattr(module, 'weight') and not isinstance(module,nn.Linear) and module.kernel_size==(1,1)):
                 module.weight.data = torch.clamp(module.weight.data,min=0)
 
     def set_input(self, data):
@@ -148,12 +162,12 @@ class Trainer():
 
     def forward_train(self): # run forward pass
         self.d0 = self.forward(self.var_ref, self.var_p0)
-        self.var_judge = Variable(1.*self.input_judge).view(self.d0.size()) # self.var_judge is the same as self.input_judge
+        self.var_judge = self.input_judge
 
         mos_predict, mos = average_per_stimuli(self.d0, self.var_judge, self.stimulus)
 
         self.loss_total = self.loss.forward(mos_predict, mos) # with aggregation
-       
+
         return self.loss_total
 
     def backward_train(self):
@@ -238,9 +252,9 @@ def Testset_DSIS(data_loader, opt, func, funcLoss = None, name=''): #added by ya
         with torch.no_grad(): 
             d0 = func(data['ref'],data['p0'])
             gt = data['judge']
-            if(opt.use_gpu):
-                d0 = d0.to(device=opt.gpu_ids[0])
-                gt = gt.to(device=opt.gpu_ids[0])
+            # if(opt.use_gpu):
+            #     d0 = d0.to(device=opt.gpu_ids[0])
+            #     gt = gt.to(device=opt.gpu_ids[0])
             
             stimulus = data['stimuli_id']
 

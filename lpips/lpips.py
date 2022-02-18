@@ -8,6 +8,7 @@ from torch.autograd import Variable
 import numpy as np
 from . import pretrained_networks as pn
 import torch.nn
+import torch.nn.functional as F
 
 import lpips
 
@@ -18,10 +19,14 @@ def upsample(in_tens, out_HW=(64,64)): # assumes scale factor is same for H and 
     in_H, in_W = in_tens.shape[2], in_tens.shape[3]
     return nn.Upsample(size=out_HW, mode='bilinear', align_corners=False)(in_tens)
 
+def flatten(matrix): # takes NxCxHxW input and outputs NxHWC
+    return matrix.view((matrix.shape[0],-1))
+	
+
 # Learned perceptual metric
 class LPIPS(nn.Module):
     def __init__(self, pretrained=True, net='alex', version='0.1', lpips=True, spatial=False, 
-        pnet_rand=False, pnet_tune=False, use_dropout=True, model_path=None, eval_mode=True, verbose=True):
+        pnet_rand=False, pnet_tune=False, use_dropout=True, model_path=None, eval_mode=True, verbose=True, weight_patch=False, fc_on_diff=False):
         # lpips - [True] means with linear calibration on top of base network
         # pretrained - [True] means load linear weights
 
@@ -37,6 +42,16 @@ class LPIPS(nn.Module):
         self.lpips = lpips # false means baseline of just averaging all layers
         self.version = version
         self.scaling_layer = ScalingLayer()
+        self.weight_patch = weight_patch
+        self.fc_on_diff = fc_on_diff
+
+        if self.fc_on_diff:
+            self.fc1_score = nn.Linear(31872, 512)
+            self.fc2_score = nn.Linear(512,1)
+            self.ref_score_subtract = nn.Linear(1,1)
+        if self.weight_patch:
+            self.fc1_weight = nn.Linear(2304,512)
+            self.fc2_weight = nn.Linear(512,1)
 
         if(self.pnet_type in ['vgg','vgg16']):
             net_type = pn.vgg16
@@ -87,40 +102,53 @@ class LPIPS(nn.Module):
         outs0, outs1 = self.net.forward(in0_input), self.net.forward(in1_input)
         feats0, feats1, diffs = {}, {}, {}
 
-        for kk in range(self.L):
-            feats0[kk], feats1[kk] = lpips.normalize_tensor(outs0[kk]), lpips.normalize_tensor(outs1[kk])
-            diffs[kk] = (feats0[kk]-feats1[kk])**2
-            
+        if self.fc_on_diff:
+            feats0 = [flatten(feat) for feat in outs0]
+            #print(feats0[-1].shape)
+            feats0 = torch.cat(feats0,1) 
+            feats1 = [flatten(feat) for feat in outs1]
+            feats1 = torch.cat(feats1,1) 
+            #print(feats0.shape)
+            diff_ms = feats1 - feats0
+            val = self.ref_score_subtract(0.01*self.fc2_score(F.relu(self.fc1_score(diff_ms))))
 
-        if(self.lpips):
-            if(self.spatial):
-                res = [upsample(self.lins[kk](diffs[kk]), out_HW=in0.shape[2:]) for kk in range(self.L)]
-            else:
-                res = [spatial_average(self.lins[kk](diffs[kk]), keepdim=True) for kk in range(self.L)]
         else:
-            if(self.spatial):
-                res = [upsample(diffs[kk].sum(dim=1,keepdim=True), out_HW=in0.shape[2:]) for kk in range(self.L)]
+            for kk in range(self.L):
+                feats0[kk], feats1[kk] = lpips.normalize_tensor(outs0[kk]), lpips.normalize_tensor(outs1[kk])
+                diffs[kk] = (feats0[kk]-feats1[kk])**2
+                
+
+            if(self.lpips):
+                if(self.spatial):
+                    res = [upsample(self.lins[kk](diffs[kk]), out_HW=in0.shape[2:]) for kk in range(self.L)]
+                else:
+                    res = [spatial_average(self.lins[kk](diffs[kk]), keepdim=True) for kk in range(self.L)]
             else:
-                res = [spatial_average(diffs[kk].sum(dim=1,keepdim=True), keepdim=True) for kk in range(self.L)]
+                if(self.spatial):
+                    res = [upsample(diffs[kk].sum(dim=1,keepdim=True), out_HW=in0.shape[2:]) for kk in range(self.L)]
+                else:
+                    res = [spatial_average(diffs[kk].sum(dim=1,keepdim=True), keepdim=True) for kk in range(self.L)]
 
-        val = res[0]
-        for l in range(1,self.L):
-            val += res[l]
+            val = res[0]
+            for l in range(1,self.L):
+                val += res[l]
 
-        # a = spatial_average(self.lins[kk](diffs[kk]), keepdim=True)
-        # b = torch.max(self.lins[kk](feats0[kk]**2))
-        # for kk in range(self.L):
-        #     a += spatial_average(self.lins[kk](diffs[kk]), keepdim=True)
-        #     b = torch.max(b,torch.max(self.lins[kk](feats0[kk]**2)))
-        #a = a/self.L
-        # from IPython import embed
-        # embed()
-        # return 10*torch.log10(b/a)
-       
-        if(retPerLayer):
-            return (val, res)
+        if self.weight_patch:
+            #const = Variable(torch.from_numpy(0.000001*np.ones((1,))).float(), requires_grad=False) 
+            #const_cuda = const#.cuda()		
+            diff_coarse = flatten(outs1[-1]) - flatten(outs0[-1])
+            per_patch_weight = self.fc2_weight(F.relu(self.fc1_weight(diff_coarse)))#+const_cuda
         else:
-            return val
+            #return weight of 1
+            per_patch_weight = torch.ones(val.shape)
+
+        print(val.shape, per_patch_weight.shape)
+        return val, per_patch_weight
+
+        # if(retPerLayer):
+        #     return (val, res)
+        # else:
+        #     return val
 
 
 class ScalingLayer(nn.Module):
