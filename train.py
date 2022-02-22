@@ -70,14 +70,14 @@ if __name__ == '__main__':
 
     load_size = 64 # default value is 64
 
-    visualizer = Visualizer(opt)
+    train_visualizer = Visualizer(opt, "train")
+    test_visualizer = Visualizer(opt, "test")
 
     # load data from all test sets 
     # The random patches for the test set are only sampled once at the beginning of training in order to avoid noise in the validation loss.
     Testset = os.path.dirname(opt.datasets[0])+'/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv'
     data_loader_testSet = dl.CreateDataLoader(Testset,dataset_mode='2afc', Nbpatches= opt.npatches, 
                                               load_size = load_size, batch_size=opt.batch_size, nThreads=opt.nThreads)
-    test_TestSet = Test_TestSet(opt)
     total_steps = 0
     # fid = open(os.path.join(opt.checkpoints_dir,opt.name,'train_log.txt'),'w+')
     # f_hyperParam = open(os.path.join(opt.checkpoints_dir,opt.name,'tuning_hyperparam.csv'),'a') 
@@ -86,82 +86,74 @@ if __name__ == '__main__':
     
     start_time = time.time()
     for epoch in range(1, opt.nepoch + opt.nepoch_decay + 1):
-            # Load training data to sample random patches every epoch
-            data_start_time = time.time()
-            data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', trainset=True, Nbpatches=opt.npatches, 
-                                              load_size = load_size, batch_size=opt.batch_size, serial_batches=True, nThreads=opt.nThreads)
-            print(f"Time to load data: {time.time()-data_start_time}")
+        # Load training data to sample random patches every epoch
+        data_start_time = time.time()
+        data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', trainset=True, Nbpatches=opt.npatches, 
+                                            load_size = load_size, batch_size=opt.batch_size, serial_batches=True, nThreads=opt.nThreads)
+        print(f"Time to load data: {time.time()-data_start_time}")
 
-            dataset = data_loader.load_data()
-            dataset_size = len(data_loader)
-            D = len(dataset)
+        dataset = data_loader.load_data()
+        dataset_size = len(data_loader) #total number of images, should be equal to nb-batches*batch_size
+        nb_batches = len(dataset) #nb of iter to cover all training set
 
-            epoch_start_time = time.time()
-            nb_batches = 0 
-            Loss_trainset = 0 
-            for i, data in enumerate(dataset):
-                iter_start_time = time.time()
-                total_steps += opt.batch_size
-                epoch_iter = total_steps - dataset_size * (epoch - 1)
+        epoch_start_time = time.time()
+        loss_epoch = 0 
+        for i, data in enumerate(dataset):
+            iter_start_time = time.time()
+            total_steps += opt.batch_size #total number of patches that went through the net
+            epoch_iter = (i+1)*opt.batch_size #total_steps - opt.batch_size*nb_batches * (epoch - 1) # number of images seen in this epoch
 
-                trainer.set_input(data)
-                trainer.optimize_parameters()
+            trainer.set_input(data)
+            trainer.optimize_parameters()
 
-                # if total_steps % opt.display_freq == 0:
-                    # visualizer.display_current_results(trainer.get_current_visuals(), epoch)
+            # if opt.display_freq > 0 and total_steps % opt.display_freq == 0:
+            #     train_visualizer.display_current_results(trainer.get_current_visuals(), epoch)
 
-                errors = trainer.get_current_errors() # current error per batch
-                Loss_trainset += errors['loss_total'] # total loss over trainset = sum(Loss/batch)/nb_batches
-                nb_batches += 1 
+            errors = trainer.get_current_errors() # current error per batch
+            loss_epoch += errors['loss_total'] # total loss over trainset = sum(Loss/batch)/nb_batches
 
-                # if total_steps % opt.print_freq == 0:
-                    # t = (time.time()-iter_start_time)/opt.batch_size
-                    # t2o = (time.time()-epoch_start_time)/3600.
-                    # t2 = t2o*D/(i+.0001)
-                    # visualizer.print_current_errors(epoch, epoch_iter, errors, t, t2=t2, t2o=t2o, fid=fid)
+            # if opt.print_freq > 0 and total_steps % opt.print_freq == 0:
+            #     t = (time.time()-iter_start_time)/opt.batch_size #time to treat one patch
+            #     t2o = (time.time()-epoch_start_time) #time to do epoch
+            #     t2 = t2o*nb_batches/(i+.0001)
+            #     train_visualizer.print_current_errors(epoch, epoch_iter, errors, t, t2=t2, t2o=t2o)#, fid=fid)
 
-                    #for key in errors.keys():
-                        #visualizer.plot_current_errors_save(epoch, float(epoch_iter)/dataset_size, opt, errors, keys=[key,], name=key, to_plot=opt.train_plot)
+            #     for key in errors.keys():
+            #         train_visualizer.plot_current_errors_save(epoch, float(epoch_iter)/dataset_size, opt, errors, keys=[key,], name=key, to_plot=opt.train_plot)
 
-                    # if opt.display_id > 0:
-                        # visualizer.plot_current_errors(epoch, float(epoch_iter)/dataset_size, opt, errors)
-
-                # if total_steps % opt.save_latest_freq == 0:
-                    # print('saving the latest model (epoch %d, total_steps %d)' %(epoch, total_steps))
-                    # trainer.save(opt.save_dir, 'latest')
-
-            if epoch % opt.save_epoch_freq == 0:
-                print('saving the model at the end of epoch %d, iters %d' %
-                      (epoch, nb_batches))
-                trainer.save(opt.save_dir, 'latest')
-                trainer.save(opt.save_dir, epoch)
-                
-                print('nb batch %.1f'%nb_batches)
-                Loss_trainset = Loss_trainset/nb_batches
-                print('Epoch Loss %.6f'%Loss_trainset)
-                resPerEpoch = dict([('Trainset_Totalloss', Loss_trainset)])
-                
-                for key in resPerEpoch.keys():
-                    visualizer.plot_current_errors_save(epoch, float(0), opt, resPerEpoch, keys=[key,], name=key, to_plot=opt.train_plot)
+            #     if opt.display_id > 0:
+            #         train_visualizer.plot_current_errors(epoch, float(epoch_iter)/dataset_size, opt, errors)
 
 
-            # Evaluate the Test set at the End of the epoch
-            if epoch % opt.testset_freq == 0:
-                res_testset = lpips.run_test_set(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
-                for Tkey in res_testset.keys():
-                    test_TestSet.plot_TestSet_save(epoch=epoch, res=res_testset, keys=[Tkey,],  name=Tkey, to_plot=opt.train_plot, what_to_plot = 'TestSet_Res')
-                info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(Loss_trainset) + "," + str(res_testset['loss']) + "," + str(res_testset['SROCC']) + "\n"
-            else:
-                info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(Loss_trainset) + "\n"
-            
-            print('End of epoch %d / %d \t Time Taken: %d sec' %
-                  (epoch, opt.nepoch + opt.nepoch_decay, time.time() - epoch_start_time))
+        if epoch % opt.save_epoch_freq == 0:
+            print('saving the model at the end of epoch %d, iters %d' %
+                    (epoch, nb_batches*epoch))
+            trainer.save(opt.save_dir, 'latest')
+            trainer.save(opt.save_dir, epoch)
+            loss_epoch = loss_epoch/nb_batches
+            print('Epoch Loss %.6f'%loss_epoch)
+            resPerEpoch = dict([('Trainset_Totalloss', loss_epoch)])
+            for key in resPerEpoch.keys():
+                train_visualizer.plot_current_errors_save(epoch, float(0), opt, resPerEpoch, keys=[key,], name=key, to_plot=opt.train_plot)
 
-            #f_hyperParam.write(info)
-            
-            if (opt.decay_type == 'linear' and epoch > opt.nepoch) or (opt.decay_type == 'divide' and epoch%opt.nepoch_decay == 0):
-                trainer.update_learning_rate(opt.nepoch_decay, opt.decay_type)
-            
+
+        # Evaluate the Test set at the End of the epoch
+        if epoch % opt.testset_freq == 0:
+            res_testset = lpips.run_test_set(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
+            for key in res_testset.keys():
+                test_visualizer.plot_current_errors_save(epoch, float(0), opt, res_testset, keys=[key,], name=key, to_plot=opt.train_plot)
+        #     info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(loss_epoch) + "," + str(res_testset['loss']) + "," + str(res_testset['SROCC']) + "\n"
+        # else:
+        #     info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(loss_epoch) + "\n"
+        
+        print('End of epoch %d / %d \t Time Taken: %d sec' %
+                (epoch, opt.nepoch + opt.nepoch_decay, time.time() - epoch_start_time))
+
+        #f_hyperParam.write(info)
+        
+        if (opt.decay_type == 'linear' and epoch > opt.nepoch) or (opt.decay_type == 'divide' and epoch%opt.nepoch_decay == 0):
+            trainer.update_learning_rate(opt.nepoch_decay, opt.decay_type)
+        
 
     # trainer.save_done(True)
     # fid.close()

@@ -17,7 +17,7 @@ def zoom_to_res(img,res=256,order=0,axis=0):
         return zoom(img,[zoom_factor,zoom_factor,1],order=order)
 
 class Visualizer():
-    def __init__(self, opt):
+    def __init__(self, opt, dir_name):
         # self.opt = opt
         self.display_id = opt.display_id
         # self.use_html = opt.is_train and not opt.no_html
@@ -31,7 +31,7 @@ class Visualizer():
             import visdom
             self.vis = visdom.Visdom(port = opt.display_port)
 
-        self.web_dir = os.path.join(opt.checkpoints_dir, opt.name, 'web')
+        self.web_dir = os.path.join(opt.checkpoints_dir, opt.name, dir_name)
         util.mkdirs([self.web_dir,])
         if self.use_html:
             self.img_dir = os.path.join(self.web_dir, 'images')
@@ -96,7 +96,6 @@ class Visualizer():
         self.plot_data['X'].append(epoch + counter_ratio)
         self.plot_data['Y'].append([errors[k] for k in self.plot_data['legend']])
         
-
         # embed()
         if(keys=='+ALL'):
             plot_keys = self.plot_data['legend']
