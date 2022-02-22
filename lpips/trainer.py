@@ -102,7 +102,6 @@ class Trainer():
         self.parameters = list(self.net.parameters())
 
         if self.is_train: # training mode
-            # extra network on top to map the distance d0 (average over the patches) of the stimulus image to the MOS
             self.loss = lpips.L1Loss()
             self.lr = lr
             self.old_lr = lr
@@ -236,7 +235,7 @@ class Trainer():
         np.savetxt(os.path.join(self.save_dir, 'done_flag'),[flag,],fmt='%i')
 
 
-def Testset_DSIS(data_loader, opt, func, funcLoss = None, name=''): #added by yana
+def run_test_set(data_loader, opt, func, funcLoss = torch.nn.L1Loss(), name=''): #added by yana
     total = 0
     SROCC = 0
     val_loss = 0

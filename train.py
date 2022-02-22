@@ -17,22 +17,25 @@ random.seed(0)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    #model/data parameters (same for train or test)
     parser.add_argument('--datasets', type=str, nargs='+', default=['train/traditional','train/cnn','train/mix'], help='datasets to train on: [train/traditional],[train/cnn],[train/mix],[val/traditional],[val/cnn],[val/color],[val/deblur],[val/frameinterp],[val/superres]')
     parser.add_argument('--model', type=str, default='lpips', help='distance model type [lpips] for linearly calibrated net, [baseline] for off-the-shelf network, [l2] for euclidean distance, [ssim] for Structured Similarity Image Metric')
     parser.add_argument('--net', type=str, default='alex', help='[squeeze], [alex], or [vgg] for network architectures')
-    #parser.add_argument('--batch_size', type=int, default=50, help='batch size to test image patches in')
-    parser.add_argument('--use_gpu', action='store_true', help='turn on flag to use GPU')
-    parser.add_argument('--gpu_ids', type=int, nargs='+', default=[0], help='gpus to use')
     parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
     parser.add_argument('--fc_on_diff', action='store_true', help='put a few fc layer on top of diff instead of normalizing/averaging')
+    parser.add_argument('--use_gpu', action='store_true', help='turn on flag to use GPU')
+    parser.add_argument('--gpu_ids', type=int, nargs='+', default=[0], help='gpus to use')
     parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
+    #trainin param
     parser.add_argument('--nepoch', type=int, default=5, help='# epochs at base learning rate')
     parser.add_argument('--nepoch_decay', type=int, default=5, help='# additional epochs at linearly learning rate')
     parser.add_argument('--decay_type', type=str, default='divide', help='linear or divide', choices=['divide','linear'])
     parser.add_argument('--npatches', type=int, default=65, help='# randomly sampled image patches')
     parser.add_argument('--nInputImg', type=int, default=4, help='# stimuli/images in each batch')
     parser.add_argument('--lr', type=float, default=0.0001, help='# initial learning rate')
-    
+    parser.add_argument('--from_scratch', action='store_true', help='model was initialized from scratch')
+    parser.add_argument('--train_trunk', action='store_true', help='model trunk was trained/tuned')
+    # display/output options
     parser.add_argument('--testset_freq', type=int, default=5, help='frequency of evaluating the testset')
     parser.add_argument('--display_freq', type=int, default=50000, help='frequency (in instances) of showing training results on screen')
     parser.add_argument('--print_freq', type=int, default=50000, help='frequency (in instances) of showing training results on console')
@@ -44,9 +47,6 @@ if __name__ == '__main__':
     parser.add_argument('--use_html', action='store_true', help='save off html pages')
     parser.add_argument('--checkpoints_dir', type=str, default='checkpoints', help='checkpoints directory')
     parser.add_argument('--name', type=str, default='tmp', help='directory name for training')
-
-    parser.add_argument('--from_scratch', action='store_true', help='model was initialized from scratch')
-    parser.add_argument('--train_trunk', action='store_true', help='model trunk was trained/tuned')
     parser.add_argument('--train_plot', action='store_true', help='plot saving')
 
     opt = parser.parse_args()
@@ -147,7 +147,7 @@ if __name__ == '__main__':
 
             # Evaluate the Test set at the End of the epoch
             if epoch % opt.testset_freq == 0:
-                res_testset = lpips.Testset_DSIS(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
+                res_testset = lpips.run_test_set(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
                 for Tkey in res_testset.keys():
                     test_TestSet.plot_TestSet_save(epoch=epoch, res=res_testset, keys=[Tkey,],  name=Tkey, to_plot=opt.train_plot, what_to_plot = 'TestSet_Res')
                 info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(Loss_trainset) + "," + str(res_testset['loss']) + "," + str(res_testset['SROCC']) + "\n"
