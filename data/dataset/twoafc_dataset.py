@@ -122,33 +122,33 @@ class TwoAFCDataset(BaseDataset):
 
         self.transform = transforms.Compose(transform_list)
     
-    # default initialize function of LPIPS
-    def initialize2(self, dataroots, load_size=64):
-        if(not isinstance(dataroots,list)):
-            dataroots = [dataroots,]
-        self.roots = dataroots
-        self.load_size = load_size
+    # # default initialize function of LPIPS
+    # def initialize2(self, dataroots, load_size=64):
+    #     if(not isinstance(dataroots,list)):
+    #         dataroots = [dataroots,]
+    #     self.roots = dataroots
+    #     self.load_size = load_size
         
-        # image directory
-        self.dir_ref = [os.path.join(root, 'ref') for root in self.roots]
-        self.ref_paths = make_dataset(self.dir_ref)
-        self.ref_paths = sorted(self.ref_paths)
+    #     # image directory
+    #     self.dir_ref = [os.path.join(root, 'ref') for root in self.roots]
+    #     self.ref_paths = make_dataset(self.dir_ref)
+    #     self.ref_paths = sorted(self.ref_paths)
 
-        self.dir_p0 = [os.path.join(root, 'p0') for root in self.roots]
-        self.p0_paths = make_dataset(self.dir_p0)
-        self.p0_paths = sorted(self.p0_paths)
+    #     self.dir_p0 = [os.path.join(root, 'p0') for root in self.roots]
+    #     self.p0_paths = make_dataset(self.dir_p0)
+    #     self.p0_paths = sorted(self.p0_paths)
 
-        transform_list = []
-        transform_list.append(transforms.Resize(load_size))
-        transform_list += [transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
+    #     transform_list = []
+    #     transform_list.append(transforms.Resize(load_size))
+    #     transform_list += [transforms.ToTensor(),
+    #         transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
 
-        self.transform = transforms.Compose(transform_list)
+    #     self.transform = transforms.Compose(transform_list)
 
-        # judgement directory
-        self.dir_J = [os.path.join(root, 'judge') for root in self.roots]
-        self.judge_paths = make_dataset(self.dir_J,mode='np')
-        self.judge_paths = sorted(self.judge_paths)
+    #     # judgement directory
+    #     self.dir_J = [os.path.join(root, 'judge') for root in self.roots]
+    #     self.judge_paths = make_dataset(self.dir_J,mode='np')
+    #     self.judge_paths = sorted(self.judge_paths)
 
     def __getitem__(self, index):
         p0_path = self.p0_paths[index]

@@ -48,17 +48,17 @@ class CustomDatasetDataLoader(BaseDataLoader):
             generator=g)
             
 
-    def initialize2(self, datafolders, dataroot='./dataset',dataset_mode='2afc',load_size=64,batch_size=1,serial_batches=True, nThreads=1):
-        BaseDataLoader.initialize(self)
-        if(not isinstance(datafolders,list)):
-            datafolders = [datafolders,]
-        data_root_folders = [os.path.join(dataroot,datafolder) for datafolder in datafolders]
-        self.dataset = CreateDataset(data_root_folders,dataset_mode=dataset_mode,load_size=load_size)
-        self.dataloader = torch.utils.data.DataLoader(
-            self.dataset,
-            batch_size=batch_size,
-            shuffle=not serial_batches,
-            num_workers=int(nThreads))
+    # def initialize2(self, datafolders, dataroot='./dataset',dataset_mode='2afc',load_size=64,batch_size=1,serial_batches=True, nThreads=1):
+    #     BaseDataLoader.initialize(self)
+    #     if(not isinstance(datafolders,list)):
+    #         datafolders = [datafolders,]
+    #     data_root_folders = [os.path.join(dataroot,datafolder) for datafolder in datafolders]
+    #     self.dataset = CreateDataset(data_root_folders,dataset_mode=dataset_mode,load_size=load_size)
+    #     self.dataloader = torch.utils.data.DataLoader(
+    #         self.dataset,
+    #         batch_size=batch_size,
+    #         shuffle=not serial_batches,
+    #         num_workers=int(nThreads))
 
     def load_data(self):
         return self.dataloader
