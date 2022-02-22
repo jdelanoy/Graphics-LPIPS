@@ -37,9 +37,8 @@ if __name__ == '__main__':
     parser.add_argument('--train_trunk', action='store_true', help='model trunk was trained/tuned')
     # display/output options
     parser.add_argument('--testset_freq', type=int, default=5, help='frequency of evaluating the testset')
-    parser.add_argument('--display_freq', type=int, default=50000, help='frequency (in instances) of showing training results on screen')
-    parser.add_argument('--print_freq', type=int, default=50000, help='frequency (in instances) of showing training results on console')
-    parser.add_argument('--save_latest_freq', type=int, default=20000, help='frequency (in instances) of saving the latest results')
+    parser.add_argument('--display_freq', type=int, default=0, help='frequency (in instances) of showing training results on screen')
+    parser.add_argument('--print_freq', type=int, default=0, help='frequency (in instances) of showing training results on console')
     parser.add_argument('--save_epoch_freq', type=int, default=1, help='frequency of saving checkpoints at the end of epochs')
     parser.add_argument('--display_id', type=int, default=0, help='window id of the visdom display, [0] for no displaying')
     parser.add_argument('--display_winsize', type=int, default=256,  help='display window size')
@@ -77,7 +76,8 @@ if __name__ == '__main__':
     Testset = os.path.dirname(opt.datasets[0])+'/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv'
     data_loader_testSet = dl.CreateDataLoader(Testset,dataset_mode='2afc', Nbpatches= opt.npatches, 
                                               load_size = load_size, batch_size=opt.batch_size, nThreads=opt.nThreads)
-    
+    tester = lpips.Tester(trainer,data_loader_testSet)
+
     
 
     total_steps = 0
@@ -146,9 +146,10 @@ if __name__ == '__main__':
         # Evaluate the Test set at the End of the epoch
         info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(loss_epoch)
         if epoch % opt.testset_freq == 0:
-            res_testset = lpips.run_test_set(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
+            res_testset = tester.run_test_set(name=Testset) # SROCC & loss
             for key in res_testset.keys():
                 test_visualizer.plot_current_errors_save(epoch, 1.0, opt, res_testset, keys=[key,], name=key, to_plot=opt.train_plot)
+            test_visualizer.plot_patches(epoch, tester.patches, tester.outputs, "patches")
             info += "," + str(res_testset['loss']) + "," + str(res_testset['SROCC'])
         info +=  "\n"
         

@@ -17,7 +17,16 @@ from itertools import groupby
 from operator import itemgetter
 from statistics import mean
 
-
+def get_img_patches_from_data(input, nb_images, nb_patches):
+    patches = []
+    i = 0
+    for _ in range(nb_images):
+        img_patch = []
+        for _ in range(nb_patches):
+            img_patch.append(lpips.tensor2im(input[i:i+1].data))
+            i += 1
+        patches.append(img_patch)
+    return patches
 def average_per_stimuli(d0, gt_score, stimulus):
     # In the following: we aggregate gt & d0 per stimulus (over all the patches of the same stimulus)
     predicted_score, patch_weight = d0
@@ -234,60 +243,89 @@ class Trainer():
         np.save(os.path.join(self.save_dir, 'done_flag'),flag)
         np.savetxt(os.path.join(self.save_dir, 'done_flag'),[flag,],fmt='%i')
 
+class Tester():
+    def __init__(self, trainer, data_loader):
+        self.func = trainer.forward
+        self.use_gpu = trainer.use_gpu
+        self.gpu_ids = trainer.gpu_ids
+        if trainer.is_train :
+            self.funcLoss = trainer.loss.forward
+        else:
+            self.funcLoss = torch.nn.L1Loss()
+        self.data_loader = data_loader
 
-def run_test_set(data_loader, opt, func, funcLoss = torch.nn.L1Loss(), name=''): #added by yana
-    total = 0
-    SROCC = 0
-    val_loss = 0
-    val_MSE = 0
-    val_steps = 0
-    d0s = []
-    gts = []
-    MOSpredicteds = []
-    MOSs = []
-    
-    
-    for data in tqdm(data_loader.load_data(), desc=name):
-        with torch.no_grad(): 
-            d0 = func(data['ref'],data['p0'])
-            gt = data['judge']
-            if(opt.use_gpu):
-                #d0 = d0.to(device=opt.gpu_ids[0])
-                gt = gt.to(device=opt.gpu_ids[0])
-            
-            stimulus = data['stimuli_id']
+    def set_input(self, data):
+        self.input_ref = data['ref']
+        self.input_p0 = data['p0']
+        self.input_judge = data['judge']
+        self.stimulus = data['stimuli_id']
 
-            MOSpredicted, MOS = average_per_stimuli(d0, gt, stimulus)
-            
-            loss = funcLoss(MOSpredicted, MOS) 
-            val_loss += loss.cpu().numpy()#detach().numpy() (if we remove "with torch.no_grad():" )
-            
-            # compute MSE manually
-            MSE = ((MOSpredicted-MOS)*(MOSpredicted-MOS)).data.cpu().numpy() 
-            val_MSE += np.mean(MSE)
-            
-            total += gt.size(0)
-            val_steps += 1
-            
-            # concatenate data to compute SROCC
-            MOSpredicteds += MOSpredicted
-            MOSs += MOS
+        if(self.use_gpu):
+            self.input_ref = self.input_ref.to(device=self.gpu_ids[0])
+            self.input_p0 = self.input_p0.to(device=self.gpu_ids[0])
+            self.input_judge = self.input_judge.to(device=self.gpu_ids[0])
+            self.stimulus = self.stimulus.to(device=self.gpu_ids[0])
 
-    #print(MOSpredicteds,MOSs)
-    #MOSpredicteds=[mos.cpu().numpy for mos in MOSpredicteds]
-    #MOSs=[mos.cpu().numpy for mos in MOSs]
-    srocc = 0#stats.spearmanr(MOSpredicteds, MOSs)[0]
-    loss = val_loss / val_steps
-    MSE = val_MSE / val_steps
+    def get_current_patches(self):
+        return self.patches
+    def set_current_patches(self, nb_images, nb_patches):
+        self.patches = get_img_patches_from_data(self.input_p0, nb_images, nb_patches)
     
-    print('Testset Total %.3f'%total)
-    print('Testset val step = nb batches =  %.3f'%val_steps)
-    print('Testset Loss %.3f'%loss)
-    print('Testset MSE %.3f'%MSE)
-    print('SROCC %.3f'%srocc)
-    
-    resDict = dict([('loss', loss),
-                    ('MSE', MSE),
-                    ('SROCC', srocc)])
-    return(resDict)
+#res_testset = lpips.run_test_set(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
+
+
+    def run_test_set(self, name=''): #added by yana
+        total = 0
+        SROCC = 0
+        val_loss = 0
+        val_MSE = 0
+        val_steps = 0
+
+        MOSpredicteds = []
+        MOSs = []
+        
+        for data in tqdm(self.data_loader.load_data(), desc=name):
+            with torch.no_grad(): 
+                self.set_input(data)
+                d0 = self.func(self.input_ref,self.input_p0)
+                gt = self.input_judge
+                
+                stimulus = self.stimulus
+
+                MOSpredicted, MOS = average_per_stimuli(d0, gt, stimulus)
+                
+                loss = self.funcLoss(MOSpredicted, MOS) 
+                val_loss += loss.cpu().numpy()#detach().numpy() (if we remove "with torch.no_grad():" )
+                
+                # compute MSE manually
+                MSE = ((MOSpredicted-MOS)*(MOSpredicted-MOS)).data.cpu().numpy() 
+                val_MSE += np.mean(MSE)
+                
+                total += gt.size(0)
+                val_steps += 1
+                
+                # concatenate data to compute SROCC
+                MOSpredicteds += MOSpredicted
+                MOSs += MOS
+
+
+
+        #print(MOSpredicteds,MOSs)
+        #MOSpredicteds=[mos.cpu().numpy for mos in MOSpredicteds]
+        #MOSs=[mos.cpu().numpy for mos in MOSs]
+        srocc = 0#stats.spearmanr(MOSpredicteds, MOSs)[0]
+        loss = val_loss / val_steps
+        MSE = val_MSE / val_steps
+        
+        print('Testset number of patches %i'%total)
+        print('Testset nb batches =  %i'%val_steps)
+        print('Testset Loss %.3f'%loss)
+        print('Testset MSE %.3f'%MSE)
+        print('SROCC %.3f'%srocc)
+        
+        measures_dict = dict([('loss', loss),
+                        ('MSE', MSE),
+                        ('SROCC', srocc)])
+
+        return(measures_dict)
 
