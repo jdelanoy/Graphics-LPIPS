@@ -18,7 +18,7 @@ random.seed(0)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     #model/data parameters (same for train or test)
-    parser.add_argument('--datasets', type=str, nargs='+', default=['train/traditional','train/cnn','train/mix'], help='datasets to train on: [train/traditional],[train/cnn],[train/mix],[val/traditional],[val/cnn],[val/color],[val/deblur],[val/frameinterp],[val/superres]')
+    parser.add_argument('--datasets', type=str, nargs='+', help='datasets to train on')
     parser.add_argument('--model', type=str, default='lpips', help='distance model type [lpips] for linearly calibrated net, [baseline] for off-the-shelf network, [l2] for euclidean distance, [ssim] for Structured Similarity Image Metric')
     parser.add_argument('--net', type=str, default='alex', help='[squeeze], [alex], or [vgg] for network architectures')
     parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     for epoch in range(1, opt.nepoch + opt.nepoch_decay + 1):
         # Load training data to sample random patches every epoch
         data_start_time = time.time()
-        data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', trainset=True, Nbpatches=opt.npatches, 
+        data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', shuffle=True, Nbpatches=opt.npatches, 
                                             load_size = load_size, batch_size=opt.batch_size, serial_batches=True, nThreads=opt.nThreads)
         print(f"Time to load data: {time.time()-data_start_time}")
 
@@ -149,7 +149,8 @@ if __name__ == '__main__':
             res_testset = tester.run_test_set(name=Testset) # SROCC & loss
             for key in res_testset.keys():
                 test_visualizer.plot_current_errors_save(epoch, 1.0, opt, res_testset, keys=[key,], name=key, to_plot=opt.train_plot)
-            test_visualizer.plot_patches(epoch, tester.patches, tester.outputs, "patches")
+            patches, outputs = tester.get_current_patches_outputs(2)
+            test_visualizer.plot_patches(epoch, patches, outputs, "patches")
             info += "," + str(res_testset['loss']) + "," + str(res_testset['SROCC'])
         info +=  "\n"
         

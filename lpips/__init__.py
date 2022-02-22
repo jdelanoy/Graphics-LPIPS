@@ -134,7 +134,7 @@ def tensor2vec(vector_tensor):
 
 
 def tensor2im(image_tensor, imtype=np.uint8, cent=1., factor=255./2.):
-# def tensor2im(image_tensor, imtype=np.uint8, cent=1., factor=1.):
+    #print(image_tensor.shape)
     image_numpy = image_tensor[0].cpu().float().numpy()
     image_numpy = (np.transpose(image_numpy, (1, 2, 0)) + cent) * factor
     return image_numpy.astype(imtype)

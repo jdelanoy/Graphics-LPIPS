@@ -11,7 +11,7 @@ import collections
 # from IPython import embed
 
 class TwoAFCDataset(BaseDataset):
-    def initialize(self, dataroots, load_size=64, Trainset = False, maxNbPatches = 205):
+    def initialize(self, dataroots, load_size=64, shuffle = False, maxNbPatches = 205):
         if(not isinstance(dataroots,list)):
             dataroots = [dataroots,]
         dirroots = os.path.dirname(dataroots[0])+'/'
@@ -28,13 +28,13 @@ class TwoAFCDataset(BaseDataset):
         self.load_size = load_size
         
         #shuffle input csv file
-        if(Trainset):
+        if(shuffle):
             shuffled_inputfile = [] 
             count_inputFile = 0
             print('\t---Shuffling dataset')
             for datafile in dataroots:
                 count_inputFile = count_inputFile + 1
-                shuffledfileName = dirroots+ 'Trainset_shuffled_' + str(count_inputFile) +'.csv'
+                shuffledfileName = dirroots+ 'dataset_shuffled_' + str(count_inputFile) +'.csv'
                 shuffled_inputfile.append(shuffledfileName)
                 with open(datafile, 'r') as r, open(shuffledfileName, 'w') as w:
                     data = r.readlines()
@@ -58,7 +58,7 @@ class TwoAFCDataset(BaseDataset):
                 line_count = 0
                 for row in csv_reader:
                     if line_count == 0:
-                        print(f'\tColumn names are {", ".join(row)}')
+                        #print(f'\tColumn names are {", ".join(row)}')
                         line_count += 1
                     else: # choose patches to load
                         model = row[0]
@@ -104,16 +104,15 @@ class TwoAFCDataset(BaseDataset):
                                 self.judges.append(MOS)
                                 self.stimuliId.append(stimuliId)
                         line_count += 1
+                        #if line_count == 5: break 
                         
-                print(f'\tProcessed {line_count-1} lines (distorted stimuli).')
+            print(f'\tProcessed {line_count-1} lines (distorted stimuli).')
                 
         print('\tTotal nb of patches to load: %.1f' %len(self.p0_paths)) # must be equal to maxNbPatches * nb rows * nb iterations 
-        print('\tThese patches correspond to %d stimuli (with repetions) = %d optimizations'%(stimuliId, stimuliId))
+        print('\tThese patches correspond to %d stimuli (with repetitions) = %d unique'%(stimuliId, len(set(self.stimuliId))))
         # occurence_stimuliId = collections.Counter(self.stimuliId)
         # print(occurence_stimuliId)
-        uniquestimulusID = set(self.stimuliId)
-        NbuniquestimulusID = len(uniquestimulusID)
-        print('\tnb of stimulusID to load %.1f' %NbuniquestimulusID)
+
 
         transform_list = []
         transform_list.append(transforms.Resize(load_size))

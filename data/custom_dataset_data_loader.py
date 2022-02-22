@@ -4,7 +4,7 @@ import os
 import random
 import numpy as np
 
-def CreateDataset(dataroots,dataset_mode='2afc',load_size=64, trainset=False , Nbpatches = 205):
+def CreateDataset(dataroots,dataset_mode='2afc',load_size=64, shuffle=False , Nbpatches = 205):
     dataset = None
     # Our dataset is baaset on the DSIS protocol (not 2afc). I adapted the code to suit DSIS. However, I did not change the function name.
     if dataset_mode=='2afc': # human judgements
@@ -16,7 +16,7 @@ def CreateDataset(dataroots,dataset_mode='2afc',load_size=64, trainset=False , N
     else:
         raise ValueError("Dataset Mode [%s] not recognized."%dataset_mode)
 
-    dataset.initialize(dataroots,load_size=load_size,Trainset = trainset, maxNbPatches = Nbpatches)
+    dataset.initialize(dataroots,load_size=load_size,shuffle = shuffle, maxNbPatches = Nbpatches)
     return dataset
 
 
@@ -29,7 +29,7 @@ class CustomDatasetDataLoader(BaseDataLoader):
     def name(self):
         return 'CustomDatasetDataLoader'
 
-    def initialize(self, data_csvfile, trainset=False, Nbpatches=205, dataset_mode='2afc',load_size=64,batch_size=1,serial_batches=True, nThreads=1):
+    def initialize(self, data_csvfile, shuffle=False, Nbpatches=205, dataset_mode='2afc',load_size=64,batch_size=1,serial_batches=True, nThreads=1):
         BaseDataLoader.initialize(self)
         if(not isinstance(data_csvfile,list)):
             data_csvfile = [data_csvfile,]
@@ -38,7 +38,7 @@ class CustomDatasetDataLoader(BaseDataLoader):
         g = torch.Generator()
         g.manual_seed(0)
 
-        self.dataset = CreateDataset(data_csvfile,dataset_mode=dataset_mode,load_size=load_size, trainset=trainset, Nbpatches=Nbpatches)
+        self.dataset = CreateDataset(data_csvfile,dataset_mode=dataset_mode,load_size=load_size, shuffle=shuffle, Nbpatches=Nbpatches)
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=batch_size,

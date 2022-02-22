@@ -5,7 +5,26 @@ from . import util
 from . import html
 import matplotlib.pyplot as plt
 import math
+import random
 # from IPython import embed
+
+def plot_patches(path, epoch, patches, position, name=''):
+    nb_images = len(patches)
+    i=0
+    score, weigth, pred, gt = position
+    print(gt.shape)
+    for im in range(nb_images):
+        fig = plt.figure(figsize=(20,18))
+        ax = fig.gca()  
+        plot_name  = os.path.join(path,f"{name}_{epoch}_{im}.png")
+        for p in range(len(patches[im])):
+            #print(position[0][im][p], position[1][im][p])
+            util.imscatter(score[im][p], weigth[im][p]+random.uniform(0,0.1), image=patches[im][p], color='white',zoom=1,ax=ax)
+        plt.title(f"Predicted:{pred[im]}, GT:{gt[im]}")
+        plt.savefig(plot_name, dpi=150, bbox_inches='tight') #"data/classification_umap.pdf")
+        fig.clf()
+        plt.close()
+
 
 def zoom_to_res(img,res=256,order=0,axis=0):
     # img   3xXxX
@@ -88,6 +107,10 @@ class Visualizer():
                         links.append(os.path.join('images',img_path))
                     webpage.add_images(ims, txts, links, width=self.win_size)
             webpage.save()
+
+
+    def plot_patches(self, epoch, patches, position, name=''):
+        plot_patches(self.web_dir,epoch, patches, position, name)
 
     # save errors into a directory
     def plot_current_errors_save(self, epoch, counter_ratio, opt, errors,keys='+ALL',name='loss', to_plot=False):

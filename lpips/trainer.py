@@ -23,10 +23,12 @@ def get_img_patches_from_data(input, nb_images, nb_patches):
     for _ in range(nb_images):
         img_patch = []
         for _ in range(nb_patches):
+            if(i >= input.shape[0]) : return patches
             img_patch.append(lpips.tensor2im(input[i:i+1].data))
             i += 1
         patches.append(img_patch)
     return patches
+
 def average_per_stimuli(d0, gt_score, stimulus):
     # In the following: we aggregate gt & d0 per stimulus (over all the patches of the same stimulus)
     predicted_score, patch_weight = d0
@@ -127,7 +129,7 @@ class Trainer():
 
         if(printNet):
             print('---------- Networks initialized -------------')
-            networks.print_network(self.net)
+            lpips.print_network(self.net)
             print('-----------------------------------------------')
 
     def forward(self, in0, in1, retPerLayer=False):
@@ -266,15 +268,15 @@ class Tester():
             self.input_judge = self.input_judge.to(device=self.gpu_ids[0])
             self.stimulus = self.stimulus.to(device=self.gpu_ids[0])
 
-    def get_current_patches(self):
-        return self.patches
-    def set_current_patches(self, nb_images, nb_patches):
-        self.patches = get_img_patches_from_data(self.input_p0, nb_images, nb_patches)
-    
+    def get_current_patches_outputs(self, nb_images):
+        if not hasattr(self, 'patches'):
+            self.patches = get_img_patches_from_data(self.input_p0, nb_images, self.nb_patches)
+        return self.patches, self.outputs
+
 #res_testset = lpips.run_test_set(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
 
 
-    def run_test_set(self, name=''): #added by yana
+    def run_test_set(self, name='', stop_after = -1): #added by yana
         total = 0
         SROCC = 0
         val_loss = 0
@@ -307,7 +309,11 @@ class Tester():
                 # concatenate data to compute SROCC
                 MOSpredicteds += MOSpredicted
                 MOSs += MOS
+                if stop_after > 0 and val_steps>stop_after: break
 
+        #save the last outputs
+        self.nb_patches = int(gt.shape[0]/len(MOS))
+        self.outputs = torch.reshape(d0[0], (len(MOS),self.nb_patches)),torch.reshape(d0[1], (len(MOS),self.nb_patches)), MOSpredicted, MOS
 
 
         #print(MOSpredicteds,MOSs)
