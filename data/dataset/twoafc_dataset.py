@@ -17,10 +17,10 @@ class TwoAFCDataset(BaseDataset):
         dirroots = os.path.dirname(dataroots[0])+'/'
         root_refPatches = dirroots+'References_patches_withVP_threth0.6'
         root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
-        if(Trainset):
-            root_judges = dirroots+'judge_trainingset'
-        else:
-            root_judges = dirroots+'judge_testset'
+        #if(Trainset):           
+        #    root_judges = dirroots+'judge_trainingset'
+        #else:
+        #    root_judges = dirroots+'judge_testset'
         nbiteration = 1
         stimuliId = 0 
         
@@ -70,8 +70,8 @@ class TwoAFCDataset(BaseDataset):
                         nbPatchesVP4 = int(row[6])
                         nbPatches = nbPatchesVP1 # For "view independent scenario": nbPatches = Total Nb Patches Per Model = nbPatchesVP1 + nbPatchesVP2 + nbPatchesVP3 +nbPatchesVP4
 
-                        judge_npyfile = stimulus + '.npy'
-                        judgepath = os.path.join(root_judges, judge_npyfile)
+                        #judge_npyfile = stimulus + '.npy'
+                        #judgepath = os.path.join(root_judges, judge_npyfile)
                        
                         nbfullimage = maxNbPatches//nbPatches
                         nbrandomPatches = maxNbPatches%nbPatches 
@@ -88,7 +88,7 @@ class TwoAFCDataset(BaseDataset):
                                     stimuluspatch = stimulus + '_P' + str(p) + '.png'
                                     stimuluspath = os.path.join(root_distPatches, stimuluspatch)
                                     self.p0_paths.append(stimuluspath)
-                                    self.judge_paths.append(judgepath) # associate the same judge/MOS to all patches.
+                                    #self.judge_paths.append(judgepath) # associate the same judge/MOS to all patches.
                                     self.judges.append(MOS)
                                     self.stimuliId.append(stimuliId) # associate the same StimulusID to all patches.
                             
@@ -100,7 +100,7 @@ class TwoAFCDataset(BaseDataset):
                                 stimuluspatch = stimulus + '_P' + str(randomPatches) + '.png'
                                 stimuluspath = os.path.join(root_distPatches, stimuluspatch)
                                 self.p0_paths.append(stimuluspath)
-                                self.judge_paths.append(judgepath)
+                                #self.judge_paths.append(judgepath)
                                 self.judges.append(MOS)
                                 self.stimuliId.append(stimuliId)
                         line_count += 1
@@ -160,9 +160,9 @@ class TwoAFCDataset(BaseDataset):
         ref_img_ = Image.open(ref_path).convert('RGB')
         ref_img = self.transform(ref_img_)
 
-        # judge_path = self.judge_paths[index]
-        # judge_img = np.load(judge_path).reshape((1,1,1,)) # [0,1]
-        # judge_img = torch.FloatTensor(judge_img)
+        #judge_path = self.judge_paths[index]
+        #judge_img = np.load(judge_path).reshape((1,1,1,)) # [0,1]
+        #judge_img = torch.FloatTensor(judge_img)
 
         judge_img = np.array([self.judges[index]]).reshape((1,1,1,)) # [0,1]
         judge_img = torch.FloatTensor(judge_img)
