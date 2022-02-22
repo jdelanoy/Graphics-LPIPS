@@ -149,8 +149,8 @@ if __name__ == '__main__':
             res_testset = tester.run_test_set(name=Testset) # SROCC & loss
             for key in res_testset.keys():
                 test_visualizer.plot_current_errors_save(epoch, 1.0, opt, res_testset, keys=[key,], name=key, to_plot=opt.train_plot)
-            patches, outputs = tester.get_current_patches_outputs(2)
-            test_visualizer.plot_patches(epoch, patches, outputs, "patches")
+            # patches, outputs = tester.get_current_patches_outputs(2)
+            # test_visualizer.plot_patches(epoch, patches, outputs, "patches")
             info += "," + str(res_testset['loss']) + "," + str(res_testset['SROCC'])
         info +=  "\n"
         
