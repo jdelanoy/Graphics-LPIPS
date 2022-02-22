@@ -55,7 +55,7 @@ class Trainer():
     def name(self):
         return self.model_name
 
-    def initialize(self, model='lpips', net='alex', colorspace='Lab', pnet_rand=False, pnet_tune=False, model_path=None,
+    def __init__(self, model='lpips', net='alex', colorspace='Lab', pnet_rand=False, pnet_tune=False, model_path=None,
             use_gpu=True, printNet=False, spatial=False, weight_patch=False, fc_on_diff=False,
             is_train=False, lr=.001, beta1=0.5, version='0.1', gpu_ids=[0]):
         '''
@@ -184,8 +184,8 @@ class Trainer():
     def get_current_visuals(self):
         zoom_factor = 256/self.var_ref.data.size()[2]
 
-        ref_img = lpips.tensor2im(self.var_ref.data)
-        p0_img = lpips.tensor2im(self.var_p0.data)
+        ref_img = lpips.tensor2im(self.var_ref[:1].data)
+        p0_img = lpips.tensor2im(self.var_p0[:1].data)
 
         ref_img_vis = zoom(ref_img,[zoom_factor, zoom_factor, 1],order=0)
         p0_img_vis = zoom(p0_img,[zoom_factor, zoom_factor, 1],order=0)

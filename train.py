@@ -63,8 +63,7 @@ if __name__ == '__main__':
         sys.stdout = original_stdout 
 
     # initialize model
-    trainer = lpips.Trainer()
-    trainer.initialize(model=opt.model, net=opt.net, use_gpu=opt.use_gpu, is_train=True, lr=opt.lr,
+    trainer = lpips.Trainer(model=opt.model, net=opt.net, use_gpu=opt.use_gpu, is_train=True, lr=opt.lr,
         fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch,
         pnet_rand=opt.from_scratch, pnet_tune=opt.train_trunk, gpu_ids=opt.gpu_ids)
 
@@ -78,11 +77,14 @@ if __name__ == '__main__':
     Testset = os.path.dirname(opt.datasets[0])+'/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv'
     data_loader_testSet = dl.CreateDataLoader(Testset,dataset_mode='2afc', Nbpatches= opt.npatches, 
                                               load_size = load_size, batch_size=opt.batch_size, nThreads=opt.nThreads)
+    
+    
+
     total_steps = 0
-    # fid = open(os.path.join(opt.checkpoints_dir,opt.name,'train_log.txt'),'w+')
-    # f_hyperParam = open(os.path.join(opt.checkpoints_dir,opt.name,'tuning_hyperparam.csv'),'a') 
-    # if os.stat(os.path.join(opt.checkpoints_dir,opt.name,'tuning_hyperparam.csv')).st_size == 0:
-        # f_hyperParam.write("nepoch,nepoch_decay,npatches,nInputImg,lr,epoch,TrainLoss,testLoss,SROCC_testset\n")
+    fid = open(os.path.join(opt.checkpoints_dir,opt.name,'train_log.txt'),'w+')
+    f_hyperParam = open(os.path.join(opt.checkpoints_dir,opt.name,'tuning_hyperparam.csv'),'a') 
+    if os.stat(os.path.join(opt.checkpoints_dir,opt.name,'tuning_hyperparam.csv')).st_size == 0:
+        f_hyperParam.write("nepoch,nepoch_decay,npatches,nInputImg,lr,epoch,TrainLoss,testLoss,SROCC_testset\n")
     
     start_time = time.time()
     for epoch in range(1, opt.nepoch + opt.nepoch_decay + 1):
@@ -106,23 +108,27 @@ if __name__ == '__main__':
             trainer.set_input(data)
             trainer.optimize_parameters()
 
-            # if opt.display_freq > 0 and total_steps % opt.display_freq == 0:
-            #     train_visualizer.display_current_results(trainer.get_current_visuals(), epoch)
-
             errors = trainer.get_current_errors() # current error per batch
             loss_epoch += errors['loss_total'] # total loss over trainset = sum(Loss/batch)/nb_batches
 
-            # if opt.print_freq > 0 and total_steps % opt.print_freq == 0:
-            #     t = (time.time()-iter_start_time)/opt.batch_size #time to treat one patch
-            #     t2o = (time.time()-epoch_start_time) #time to do epoch
-            #     t2 = t2o*nb_batches/(i+.0001)
-            #     train_visualizer.print_current_errors(epoch, epoch_iter, errors, t, t2=t2, t2o=t2o)#, fid=fid)
 
-            #     for key in errors.keys():
-            #         train_visualizer.plot_current_errors_save(epoch, float(epoch_iter)/dataset_size, opt, errors, keys=[key,], name=key, to_plot=opt.train_plot)
 
-            #     if opt.display_id > 0:
-            #         train_visualizer.plot_current_errors(epoch, float(epoch_iter)/dataset_size, opt, errors)
+            if opt.display_freq > 0 and total_steps % opt.display_freq == 0:
+                train_visualizer.display_current_results(trainer.get_current_visuals(), epoch)
+
+            if opt.print_freq > 0 and total_steps % opt.print_freq == 0:
+                t = (time.time()-iter_start_time)/opt.batch_size #time to treat one patch
+                t2o = (time.time()-epoch_start_time) #time to do epoch
+                t2 = t2o*nb_batches/(i+.0001)
+                train_visualizer.print_current_errors(epoch, epoch_iter, errors, t, t2=t2, t2o=t2o, fid=fid)
+
+                for key in errors.keys():
+                    train_visualizer.plot_current_errors_save(epoch, float(epoch_iter)/dataset_size, opt, errors, keys=[key,], name=key, to_plot=opt.train_plot)
+
+                if opt.display_id > 0:
+                    train_visualizer.plot_current_errors(epoch, float(epoch_iter)/dataset_size, opt, errors)
+
+
 
 
         if epoch % opt.save_epoch_freq == 0:
@@ -132,31 +138,31 @@ if __name__ == '__main__':
             trainer.save(opt.save_dir, epoch)
             loss_epoch = loss_epoch/nb_batches
             print('Epoch Loss %.6f'%loss_epoch)
-            resPerEpoch = dict([('Trainset_Totalloss', loss_epoch)])
+            resPerEpoch = dict([('loss_total', loss_epoch)])
             for key in resPerEpoch.keys():
-                train_visualizer.plot_current_errors_save(epoch, float(0), opt, resPerEpoch, keys=[key,], name=key, to_plot=opt.train_plot)
+                train_visualizer.plot_current_errors_save(epoch, 1.0, opt, resPerEpoch, keys=[key,], name=key, to_plot=opt.train_plot)
 
 
         # Evaluate the Test set at the End of the epoch
+        info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(loss_epoch)
         if epoch % opt.testset_freq == 0:
             res_testset = lpips.run_test_set(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
             for key in res_testset.keys():
-                test_visualizer.plot_current_errors_save(epoch, float(0), opt, res_testset, keys=[key,], name=key, to_plot=opt.train_plot)
-        #     info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(loss_epoch) + "," + str(res_testset['loss']) + "," + str(res_testset['SROCC']) + "\n"
-        # else:
-        #     info = str(opt.nepoch) + "," + str(opt.nepoch_decay) + "," + str(opt.npatches) + "," + str(opt.nInputImg) + "," + str(opt.lr) + "," + str(epoch) + "," + str(loss_epoch) + "\n"
+                test_visualizer.plot_current_errors_save(epoch, 1.0, opt, res_testset, keys=[key,], name=key, to_plot=opt.train_plot)
+            info += "," + str(res_testset['loss']) + "," + str(res_testset['SROCC'])
+        info +=  "\n"
         
         print('End of epoch %d / %d \t Time Taken: %d sec' %
                 (epoch, opt.nepoch + opt.nepoch_decay, time.time() - epoch_start_time))
 
-        #f_hyperParam.write(info)
+        f_hyperParam.write(info)
         
         if (opt.decay_type == 'linear' and epoch > opt.nepoch) or (opt.decay_type == 'divide' and epoch%opt.nepoch_decay == 0):
             trainer.update_learning_rate(opt.nepoch_decay, opt.decay_type)
         
 
     # trainer.save_done(True)
-    # fid.close()
-    #f_hyperParam.close()
+    fid.close()
+    f_hyperParam.close()
     print( 'End of %d epochs. Time taken: %d sec' %(opt.nepoch + opt.nepoch_decay,  time.time() -  start_time))
     
