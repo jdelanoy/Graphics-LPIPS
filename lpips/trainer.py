@@ -252,9 +252,9 @@ def Testset_DSIS(data_loader, opt, func, funcLoss = None, name=''): #added by ya
         with torch.no_grad(): 
             d0 = func(data['ref'],data['p0'])
             gt = data['judge']
-            # if(opt.use_gpu):
-            #     d0 = d0.to(device=opt.gpu_ids[0])
-            #     gt = gt.to(device=opt.gpu_ids[0])
+            if(opt.use_gpu):
+                #d0 = d0.to(device=opt.gpu_ids[0])
+                gt = gt.to(device=opt.gpu_ids[0])
             
             stimulus = data['stimuli_id']
 

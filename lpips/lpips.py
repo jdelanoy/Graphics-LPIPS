@@ -140,9 +140,9 @@ class LPIPS(nn.Module):
             per_patch_weight = self.fc2_weight(F.relu(self.fc1_weight(diff_coarse)))#+const_cuda
         else:
             #return weight of 1
-            per_patch_weight = torch.ones(val.shape)
+            per_patch_weight = torch.ones(val.shape).to(val.device)
 
-        print(val.shape, per_patch_weight.shape)
+#        print(val.shape, per_patch_weight.shape)
         return val, per_patch_weight
 
         # if(retPerLayer):
