@@ -86,7 +86,7 @@ class LPIPS(nn.Module):
                     model_path = os.path.abspath(os.path.join(inspect.getfile(self.__init__), '..', 'weights/v%s/%s.pth'%(version,net)))
 
                 if(verbose):
-                    print('Loading modelssssssssssss from: %s'%model_path)
+                    print('Loading models from: %s'%model_path)
                 self.load_state_dict(torch.load(model_path, map_location='cpu'), strict=False)          
 
         if(eval_mode):
@@ -134,10 +134,9 @@ class LPIPS(nn.Module):
                 val += res[l]
 
         if self.weight_patch:
-            #const = Variable(torch.from_numpy(0.000001*np.ones((1,))).float(), requires_grad=False) 
-            #const_cuda = const#.cuda()		
+            const = Variable(torch.from_numpy(0.000001*np.ones((1,))).float(), requires_grad=False).to(val.device)
             diff_coarse = flatten(outs1[-1]) - flatten(outs0[-1])
-            per_patch_weight = self.fc2_weight(F.relu(self.fc1_weight(diff_coarse)))#+const_cuda
+            per_patch_weight = F.relu(self.fc2_weight(F.relu(self.fc1_weight(diff_coarse))))#+const
         else:
             #return weight of 1
             per_patch_weight = torch.ones(val.shape).to(val.device)
