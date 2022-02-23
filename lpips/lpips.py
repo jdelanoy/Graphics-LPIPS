@@ -26,9 +26,17 @@ def flatten(matrix): # takes NxCxHxW input and outputs NxHWC
 # Learned perceptual metric
 class LPIPS(nn.Module):
     def __init__(self, pretrained=True, net='alex', version='0.1', lpips=True, spatial=False, 
-        pnet_rand=False, pnet_tune=False, use_dropout=True, model_path=None, eval_mode=True, verbose=True, weight_patch=False, fc_on_diff=False):
+        pnet_rand=False, pnet_tune=False, use_dropout=True, model_path=None, eval_mode=True, verbose=True, 
+        weight_patch=False, fc_on_diff=False, weight_output='relu', dropout_rate=0):
         # lpips - [True] means with linear calibration on top of base network
         # pretrained - [True] means load linear weights
+        # pnet_rand - random initialization of base network
+        # pnet_tune - continue training the base network
+        # weight_patch - compute a weight for each patch
+        # fc_on_diff - flatten the features and put the difference through FC layers, if False, MSE
+        # weight_output - [relu] [tanh] or [none]: the operation applied to the last FC layer for weights
+        # dropout_rate - dropout rate (behind FC layers)
+        # 
 
         super(LPIPS, self).__init__()
         if(verbose):
@@ -45,6 +53,7 @@ class LPIPS(nn.Module):
         self.weight_patch = weight_patch
         self.fc_on_diff = fc_on_diff
 
+
         if self.fc_on_diff:
             self.fc1_score = nn.Linear(31872, 512)
             self.fc2_score = nn.Linear(512,1)
@@ -52,6 +61,8 @@ class LPIPS(nn.Module):
         if self.weight_patch:
             self.fc1_weight = nn.Linear(2304,512)
             self.fc2_weight = nn.Linear(512,1)
+            self.weight_output = weight_output
+        self.dropout = nn.Dropout(dropout_rate)
 
         if(self.pnet_type in ['vgg','vgg16']):
             net_type = pn.vgg16
@@ -110,7 +121,7 @@ class LPIPS(nn.Module):
             feats1 = torch.cat(feats1,1) 
             #print(feats0.shape)
             diff_ms = feats1 - feats0
-            val = self.ref_score_subtract(0.01*self.fc2_score(F.relu(self.fc1_score(diff_ms))))
+            val = self.ref_score_subtract(0.01*self.fc2_score(self.dropout(F.relu(self.fc1_score(diff_ms)))))
 
         else:
             for kk in range(self.L):
@@ -136,7 +147,13 @@ class LPIPS(nn.Module):
         if self.weight_patch:
             const = Variable(torch.from_numpy(0.000001*np.ones((1,))).float(), requires_grad=False).to(val.device)
             diff_coarse = flatten(outs1[-1]) - flatten(outs0[-1])
-            per_patch_weight = F.relu(self.fc2_weight(F.relu(self.fc1_weight(diff_coarse))))#+const
+            fc_output = self.fc2_weight(self.dropout(F.relu(self.fc1_weight(diff_coarse))))
+            if self.weight_output == 'relu':
+                per_patch_weight = F.relu(fc_output)+0.000001
+            elif self.weight_output == 'tanh':
+                per_patch_weight = F.tanh(fc_output)/2+0.5+0.000001
+            else:
+                per_patch_weight = fc_output
         else:
             #return weight of 1
             per_patch_weight = torch.ones(val.shape).to(val.device)

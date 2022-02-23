@@ -67,7 +67,8 @@ class Trainer():
         return self.model_name
 
     def __init__(self, model='lpips', net='alex', colorspace='Lab', pnet_rand=False, pnet_tune=False, model_path=None,
-            use_gpu=True, printNet=False, spatial=False, weight_patch=False, fc_on_diff=False,
+            use_gpu=True, printNet=False, spatial=False,
+            weight_patch=False, fc_on_diff=False, weight_output='relu', dropout_rate=0,
             is_train=False, lr=.001, beta1=0.5, version='0.1', gpu_ids=[0]):
         '''
         INPUTS
@@ -98,7 +99,8 @@ class Trainer():
         if(self.model == 'lpips'): # pretrained net + linear layer
             self.net = lpips.LPIPS(pretrained=not is_train, net=net, version=version, lpips=True, spatial=spatial, 
                 pnet_rand=pnet_rand, pnet_tune=pnet_tune, 
-                use_dropout=True, model_path=model_path, eval_mode=False, fc_on_diff=fc_on_diff, weight_patch=weight_patch)
+                use_dropout=True, model_path=model_path, eval_mode=False,
+                fc_on_diff=fc_on_diff, weight_patch=weight_patch, weight_output=weight_output, dropout_rate=dropout_rate)
         elif(self.model=='baseline'): # pretrained network
             self.net = lpips.LPIPS(pnet_rand=pnet_rand, net=net, lpips=False)
         elif(self.model in ['L2','l2']):
@@ -261,6 +263,7 @@ class Tester():
         self.input_p0 = data['p0']
         self.input_judge = data['judge']
         self.stimulus = data['stimuli_id']
+        self.path = data['p0_path']
 
         if(self.use_gpu):
             self.input_ref = self.input_ref.to(device=self.gpu_ids[0])
@@ -271,7 +274,7 @@ class Tester():
     def get_current_patches_outputs(self, nb_images):
         if not hasattr(self, 'patches'):
             self.patches = get_img_patches_from_data(self.input_p0, nb_images, self.nb_patches)
-        return self.patches, self.outputs
+        return self.patches, self.outputs, self.path
 
 #res_testset = lpips.run_test_set(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
 

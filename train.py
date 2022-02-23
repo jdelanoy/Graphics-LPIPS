@@ -23,6 +23,9 @@ if __name__ == '__main__':
     parser.add_argument('--net', type=str, default='alex', help='[squeeze], [alex], or [vgg] for network architectures')
     parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
     parser.add_argument('--fc_on_diff', action='store_true', help='put a few fc layer on top of diff instead of normalizing/averaging')
+    parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
+    parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
+    #material stuff
     parser.add_argument('--use_gpu', action='store_true', help='turn on flag to use GPU')
     parser.add_argument('--gpu_ids', type=int, nargs='+', default=[0], help='gpus to use')
     parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
@@ -63,7 +66,7 @@ if __name__ == '__main__':
 
     # initialize model
     trainer = lpips.Trainer(model=opt.model, net=opt.net, use_gpu=opt.use_gpu, is_train=True, lr=opt.lr,
-        fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch,
+        fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch, weight_output=opt.weight_output, dropout_rate=opt.dropout_rate,
         pnet_rand=opt.from_scratch, pnet_tune=opt.train_trunk, gpu_ids=opt.gpu_ids)
 
     load_size = 64 # default value is 64
