@@ -52,6 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoints_dir', type=str, default='checkpoints', help='checkpoints directory')
     parser.add_argument('--name', type=str, default='tmp', help='directory name for training')
     parser.add_argument('--train_plot', action='store_true', help='plot saving')
+    parser.add_argument('--print_net', action='store_true', help='print the network architecture')
 
     opt = parser.parse_args()
     opt.batch_size = opt.npatches * opt.nInputImg
@@ -70,7 +71,7 @@ if __name__ == '__main__':
     trainer = lpips.Trainer(model=opt.model, net=opt.net, use_gpu=opt.use_gpu, is_train=True, lr=opt.lr,
         fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch, weight_output=opt.weight_output,
         dropout_rate=opt.dropout_rate, tanh_score=opt.tanh_score, weight_multiscale=opt.weight_multiscale,
-        pnet_rand=opt.from_scratch, pnet_tune=opt.train_trunk, gpu_ids=opt.gpu_ids)
+        pnet_rand=opt.from_scratch, pnet_tune=opt.train_trunk, gpu_ids=opt.gpu_ids, printNet=opt.print_net)
 
     load_size = 64 # default value is 64
 
