@@ -8,19 +8,29 @@ import math
 import random
 # from IPython import embed
 
-def plot_patches(path, epoch, patches, position, name=''):
+def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=False):
     nb_images = len(patches)
     i=0
     score, weigth, pred, gt = position
     print(gt.shape)
     for im in range(nb_images):
-        fig = plt.figure(figsize=(20,18))
-        ax = fig.gca()  
-        plot_name  = os.path.join(path,f"{name}_{epoch}_{im}.png")
+        fig = plt.figure(figsize=(24,12))
+        ax1 = fig.add_subplot(1,3,(1,2))
         for p in range(len(patches[im])):
             #print(position[0][im][p], position[1][im][p])
-            util.imscatter(score[im][p], weigth[im][p]+random.uniform(0,0.1), image=patches[im][p], color='white',zoom=1,ax=ax)
-        plt.title(f"Predicted:{pred[im]}, GT:{gt[im]}")
+            util.imscatter(score[im][p], weigth[im][p]+(random.uniform(0,0.1) if jitter else 0), image=patches[im][p], color='white',zoom=1,ax=ax1)
+        ax1.set_xlim((-0.8,1.2))
+        ax1.vlines([0,1],ax1.get_ylim()[0],ax1.get_ylim()[1])
+        ax1.set_title(f"{stimulus[im]['path'].split('/')[-1]},\n Predicted:{pred[im]}, GT:{gt[im]}")
+        ax2 = fig.add_subplot(233)
+        ax2.imshow(stimulus[im]["ref_img"])
+        ax2.set_title("Ref")
+        ax2.set_axis_off()
+        ax3 = fig.add_subplot(236)
+        ax3.imshow(stimulus[im]["distorted_img"])
+        ax3.set_title("Distorted")
+        ax3.set_axis_off()
+        plot_name  = os.path.join(path,f"{name}_{epoch}_{im}.png")
         plt.savefig(plot_name, dpi=150, bbox_inches='tight') #"data/classification_umap.pdf")
         fig.clf()
         plt.close()
@@ -109,8 +119,8 @@ class Visualizer():
             webpage.save()
 
 
-    def plot_patches(self, epoch, patches, position, name=''):
-        plot_patches(self.web_dir,epoch, patches, position, name)
+    def plot_patches(self, epoch, patches, position, name='', stimulus=None, jitter=False):
+        plot_patches(self.web_dir,epoch, patches, position, name, stimulus, jitter)
 
     # save errors into a directory
     def plot_current_errors_save(self, epoch, counter_ratio, opt, errors,keys='+ALL',name='loss', to_plot=False):

@@ -16,6 +16,19 @@ import collections
 from itertools import groupby
 from operator import itemgetter
 from statistics import mean
+from PIL import Image
+
+def get_full_images(patch_paths, nb_images, nb_patches):
+    images = []
+    for i in range(nb_images):
+        path = patch_paths[i*nb_patches]
+        dis_path = path.rsplit('_',1)[0].split("/")[-1]
+        ref_path = dis_path.rsplit('_simp',1)[0]
+        root_folder = path.rsplit('/',2)[0]
+        ref_img = Image.open(os.path.join(root_folder,"References/VP1",ref_path+"_Ref.png")).convert('RGB')
+        dis_img = Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP1",dis_path+".png")).convert('RGB')
+        images.append({"path":dis_path, "ref_img": ref_img, "distorted_img": dis_img})
+    return images
 
 def get_img_patches_from_data(input, nb_images, nb_patches):
     patches = []
@@ -247,6 +260,17 @@ class Trainer():
         np.save(os.path.join(self.save_dir, 'done_flag'),flag)
         np.savetxt(os.path.join(self.save_dir, 'done_flag'),[flag,],fmt='%i')
 
+
+
+
+
+
+
+
+
+
+
+
 class Tester():
     def __init__(self, trainer, data_loader):
         self.func = trainer.forward
@@ -273,8 +297,10 @@ class Tester():
 
     def get_current_patches_outputs(self, nb_images):
         if not hasattr(self, 'patches'):
+            #get the patches and the full images only once
             self.patches = get_img_patches_from_data(self.input_p0, nb_images, self.nb_patches)
-        return self.patches, self.outputs, self.path
+            self.images = get_full_images(self.path, nb_images, self.nb_patches)
+        return self.patches, self.outputs, self.images
 
 #res_testset = lpips.run_test_set(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
 

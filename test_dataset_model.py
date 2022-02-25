@@ -18,6 +18,9 @@ if __name__ == '__main__':
     parser.add_argument('--net', type=str, default='alex', help='[squeeze], [alex], or [vgg] for network architectures')
     parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
     parser.add_argument('--fc_on_diff', action='store_true', help='put a few fc layer on top of diff instead of normalizing/averaging')
+    parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
+    parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
+    parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top of FC for scores (force to be in [0,1])')
     parser.add_argument('--use_gpu', action='store_true', help='turn on flag to use GPU')
     parser.add_argument('--gpu_ids', type=int, nargs='+', default=[0], help='gpus to use')
     parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
@@ -36,7 +39,8 @@ if __name__ == '__main__':
 
     # initialize model
     trainer = lpips.Trainer(model=opt.model, net=opt.net, 
-        model_path=opt.model_path, use_gpu=opt.use_gpu, gpu_ids=opt.gpu_ids,fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch)
+        model_path=opt.model_path, use_gpu=opt.use_gpu, gpu_ids=opt.gpu_ids,
+        fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch, weight_output=opt.weight_output, dropout_rate=opt.dropout_rate, tanh_score=opt.tanh_score,)
 
 
     load_size = 64 # default value is 64
@@ -46,7 +50,7 @@ if __name__ == '__main__':
             # evaluate model on data
             tester = lpips.Tester(trainer,data_loader)
             resTestSet  = tester.run_test_set(name=dataset,stop_after=1)
-            patches, outputs = tester.get_current_patches_outputs(opt.nInputImg)
-            plot_patches(opt.output_dir, 0, patches, outputs, "test_patches")
+            patches, outputs, stimulus = tester.get_current_patches_outputs(opt.nInputImg)
+            plot_patches(opt.output_dir, 0, patches, outputs, "test_patches", stimulus=stimulus, jitter=not opt.weight_patch)
             print('  Dataset [%s]: spearman %.2f'%(dataset,resTestSet['SROCC']))
 
