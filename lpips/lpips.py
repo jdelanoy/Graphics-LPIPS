@@ -27,7 +27,7 @@ def flatten(matrix): # takes NxCxHxW input and outputs NxHWC
 class LPIPS(nn.Module):
     def __init__(self, pretrained=True, net='alex', version='0.1', lpips=True, spatial=False, 
         pnet_rand=False, pnet_tune=False, use_dropout=True, model_path=None, eval_mode=True, verbose=True, 
-        weight_patch=False, fc_on_diff=False, weight_output='relu', dropout_rate=0):
+        weight_patch=False, fc_on_diff=False, weight_output='relu', tanh_score = False, dropout_rate=0):
         # lpips - [True] means with linear calibration on top of base network
         # pretrained - [True] means load linear weights
         # pnet_rand - random initialization of base network
@@ -52,7 +52,7 @@ class LPIPS(nn.Module):
         self.scaling_layer = ScalingLayer()
         self.weight_patch = weight_patch
         self.fc_on_diff = fc_on_diff
-
+        self.tanh_score = tanh_score
 
         if self.fc_on_diff:
             self.fc1_score = nn.Linear(31872, 512)
@@ -122,6 +122,8 @@ class LPIPS(nn.Module):
             #print(feats0.shape)
             diff_ms = feats1 - feats0
             val = (self.fc2_score(self.dropout(F.relu(self.fc1_score(diff_ms)))))
+            if self.tanh_score:
+                val = F.tanh(val)/2+0.5+0.000001
 
         else:
             for kk in range(self.L):
