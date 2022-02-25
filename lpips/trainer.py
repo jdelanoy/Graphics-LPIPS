@@ -81,7 +81,7 @@ class Trainer():
 
     def __init__(self, model='lpips', net='alex', colorspace='Lab', pnet_rand=False, pnet_tune=False, model_path=None,
             use_gpu=True, printNet=False, spatial=False,
-            weight_patch=False, fc_on_diff=False, weight_output='relu', tanh_score = False, dropout_rate=0,
+            weight_patch=False, fc_on_diff=False, weight_output='relu', tanh_score = False, dropout_rate=0, weight_multiscale = False,
             is_train=False, lr=.001, beta1=0.5, version='0.1', gpu_ids=[0]):
         '''
         INPUTS
@@ -113,7 +113,8 @@ class Trainer():
             self.net = lpips.LPIPS(pretrained=not is_train, net=net, version=version, lpips=True, spatial=spatial, 
                 pnet_rand=pnet_rand, pnet_tune=pnet_tune, 
                 use_dropout=True, model_path=model_path, eval_mode=False,
-                fc_on_diff=fc_on_diff, weight_patch=weight_patch, weight_output=weight_output, dropout_rate=dropout_rate, tanh_score=tanh_score)
+                fc_on_diff=fc_on_diff, weight_patch=weight_patch, weight_output=weight_output, 
+                dropout_rate=dropout_rate, tanh_score=tanh_score, weight_multiscale=weight_multiscale)
         elif(self.model=='baseline'): # pretrained network
             self.net = lpips.LPIPS(pnet_rand=pnet_rand, net=net, lpips=False)
         elif(self.model in ['L2','l2']):

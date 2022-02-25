@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
     parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
     parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top of FC for scores (force to be in [0,1])')
+    parser.add_argument('--weight_multiscale', action='store_true', help='gives all the features to weight branch. If False, gives only last feature map')
     parser.add_argument('--use_gpu', action='store_true', help='turn on flag to use GPU')
     parser.add_argument('--gpu_ids', type=int, nargs='+', default=[0], help='gpus to use')
     parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
@@ -40,7 +41,8 @@ if __name__ == '__main__':
     # initialize model
     trainer = lpips.Trainer(model=opt.model, net=opt.net, 
         model_path=opt.model_path, use_gpu=opt.use_gpu, gpu_ids=opt.gpu_ids,
-        fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch, weight_output=opt.weight_output, dropout_rate=opt.dropout_rate, tanh_score=opt.tanh_score,)
+        fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch, weight_output=opt.weight_output,
+        dropout_rate=opt.dropout_rate, tanh_score=opt.tanh_score, weight_multiscale=opt.weight_multiscale)
 
 
     load_size = 64 # default value is 64
