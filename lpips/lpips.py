@@ -121,7 +121,7 @@ class LPIPS(nn.Module):
             feats1 = torch.cat(feats1,1) 
             #print(feats0.shape)
             diff_ms = feats1 - feats0
-            val = self.ref_score_subtract(0.01*self.fc2_score(self.dropout(F.relu(self.fc1_score(diff_ms)))))
+            val = (self.fc2_score(self.dropout(F.relu(self.fc1_score(diff_ms)))))
 
         else:
             for kk in range(self.L):
