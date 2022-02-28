@@ -337,8 +337,8 @@ class Tester():
                 val_steps += 1
                 
                 # concatenate data to compute SROCC
-                MOSpredicteds += MOSpredicted
-                MOSs += MOS
+                MOSpredicteds += MOSpredicted.flatten().cpu().tolist()
+                MOSs += MOS.flatten().cpu().tolist()
                 if stop_after > 0 and val_steps>stop_after: break
 
         #save the last outputs
@@ -346,10 +346,9 @@ class Tester():
         self.outputs = torch.reshape(d0[0], (len(MOS),self.nb_patches)),torch.reshape(d0[1], (len(MOS),self.nb_patches)), MOSpredicted, MOS
 
 
-        #print(MOSpredicteds,MOSs)
-        #MOSpredicteds=[mos.cpu().numpy for mos in MOSpredicteds]
-        #MOSs=[mos.cpu().numpy for mos in MOSs]
-        srocc = 0#stats.spearmanr(MOSpredicteds, MOSs)[0]
+        #MOSpredicteds=[mos.flatten().cpu().numpy() for mos in MOSpredicteds]
+        #MOSs= MOSs.numpy()[mos.cpu().flatten().numpy() for mos in MOSs]
+        srocc = stats.spearmanr(MOSpredicteds, MOSs)[0]
         loss = val_loss / val_steps
         MSE = val_MSE / val_steps
         
