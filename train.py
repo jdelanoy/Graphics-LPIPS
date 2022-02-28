@@ -27,6 +27,7 @@ if __name__ == '__main__':
     parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
     parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top of FC for scores (force to be in [0,1])')
     parser.add_argument('--weight_multiscale', action='store_true', help='gives all the features to weight branch. If False, gives only last feature map')
+    parser.add_argument('--multiview', action='store_true', help='use patches from different views')
     #material stuff
     parser.add_argument('--use_gpu', action='store_true', help='turn on flag to use GPU')
     parser.add_argument('--gpu_ids', type=int, nargs='+', default=[0], help='gpus to use')
@@ -82,7 +83,7 @@ if __name__ == '__main__':
     # The random patches for the test set are only sampled once at the beginning of training in order to avoid noise in the validation loss.
     Testset = os.path.dirname(opt.datasets[0])+'/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv'
     data_loader_testSet = dl.CreateDataLoader(Testset,dataset_mode='2afc', Nbpatches= opt.npatches, 
-                                              load_size = load_size, batch_size=opt.batch_size, nThreads=opt.nThreads)
+                                              load_size = load_size, batch_size=opt.batch_size, nThreads=opt.nThreads, multiview=opt.multiview)
     tester = lpips.Tester(trainer,data_loader_testSet)
 
     
@@ -98,7 +99,7 @@ if __name__ == '__main__':
         # Load training data to sample random patches every epoch
         data_start_time = time.time()
         data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', shuffle=True, Nbpatches=opt.npatches, 
-                                            load_size = load_size, batch_size=opt.batch_size, serial_batches=True, nThreads=opt.nThreads)
+                                            load_size = load_size, batch_size=opt.batch_size, serial_batches=True, nThreads=opt.nThreads, multiview=opt.multiview)
         print(f"Time to load data: {time.time()-data_start_time}")
 
         dataset = data_loader.load_data()

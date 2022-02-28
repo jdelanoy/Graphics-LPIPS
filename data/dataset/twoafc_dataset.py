@@ -11,7 +11,7 @@ import collections
 # from IPython import embed
 
 class TwoAFCDataset(BaseDataset):
-    def initialize(self, dataroots, load_size=64, shuffle = False, maxNbPatches = 205):
+    def initialize(self, dataroots, load_size=64, shuffle = False, maxNbPatches = 205, multiview=False):
         if(not isinstance(dataroots,list)):
             dataroots = [dataroots,]
         dirroots = os.path.dirname(dataroots[0])+'/'
@@ -69,7 +69,7 @@ class TwoAFCDataset(BaseDataset):
                         nbPatchesVP3 = int(row[5])
                         nbPatchesVP4 = int(row[6])
                         nbPatches = nbPatchesVP1 # For "view independent scenario": nbPatches = Total Nb Patches Per Model = nbPatchesVP1 + nbPatchesVP2 + nbPatchesVP3 +nbPatchesVP4
-
+                        if multiview: nbPatches = nbPatchesVP1 + nbPatchesVP2 + nbPatchesVP3 +nbPatchesVP4
                         #judge_npyfile = stimulus + '.npy'
                         #judgepath = os.path.join(root_judges, judge_npyfile)
                        
