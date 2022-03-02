@@ -12,11 +12,11 @@ import lpips
 import os
 from scipy import stats
 import statsmodels.api as sm
-import collections
 from itertools import groupby
 from operator import itemgetter
 from statistics import mean
 from PIL import Image
+from util.visualizer import plot_patches
 
 def get_full_images(patch_paths, nb_images, nb_patches):
     images = []
@@ -108,6 +108,7 @@ class Trainer():
         self.is_train = is_train
         self.spatial = spatial
         self.model_name = '%s [%s]'%(model,net)
+        self.weight_patch = weight_patch
 
         if(self.model == 'lpips'): # pretrained net + linear layer
             self.net = lpips.LPIPS(pretrained=not is_train, net=net, version=version, lpips=True, spatial=spatial, 
@@ -277,6 +278,7 @@ class Tester():
         self.func = trainer.forward
         self.use_gpu = trainer.use_gpu
         self.gpu_ids = trainer.gpu_ids
+        self.weight_patch = trainer.weight_patch
         if trainer.is_train :
             self.funcLoss = trainer.loss.forward
         else:
@@ -296,17 +298,14 @@ class Tester():
             self.input_judge = self.input_judge.to(device=self.gpu_ids[0])
             self.stimulus = self.stimulus.to(device=self.gpu_ids[0])
 
-    def get_current_patches_outputs(self, nb_images):
-        if not hasattr(self, 'patches'):
+    def get_current_patches_outputs(self, nb_images, force_update=False):
+        if not hasattr(self, 'patches') or force_update:
             #get the patches and the full images only once
             self.patches = get_img_patches_from_data(self.input_p0, nb_images, self.nb_patches)
             self.images = get_full_images(self.path, nb_images, self.nb_patches)
         return self.patches, self.outputs, self.images
 
-#res_testset = lpips.run_test_set(data_loader_testSet, opt, trainer.forward, trainer.loss.forward, name=Testset) # SROCC & loss
-
-
-    def run_test_set(self, name='', stop_after = -1): #added by yana
+    def run_test_set(self, name='', stop_after = -1, to_plot_patches=False, output_dir=""): #added by yana
         total = 0
         SROCC = 0
         val_loss = 0
@@ -339,12 +338,16 @@ class Tester():
                 # concatenate data to compute SROCC
                 MOSpredicteds += MOSpredicted.flatten().cpu().tolist()
                 MOSs += MOS.flatten().cpu().tolist()
-                if stop_after > 0 and val_steps>stop_after: break
 
-        #save the last outputs
-        self.nb_patches = int(gt.shape[0]/len(MOS))
-        self.outputs = torch.reshape(d0[0], (len(MOS),self.nb_patches)),torch.reshape(d0[1], (len(MOS),self.nb_patches)), MOSpredicted, MOS
+                #save the last outputs
+                self.nb_patches = int(gt.shape[0]/len(MOS))
+                self.outputs = torch.reshape(d0[0], (len(MOS),self.nb_patches)),torch.reshape(d0[1], (len(MOS),self.nb_patches)), MOSpredicted, MOS
 
+                if to_plot_patches:
+                    patches, outputs, stimulus = self.get_current_patches_outputs(len(MOS), force_update=True)
+                    plot_patches(output_dir, 0, patches, outputs, f"test_patches_{val_steps}", stimulus=stimulus, jitter=not self.weight_patch)
+
+                if stop_after > 0 and val_steps>=stop_after: break
 
         #MOSpredicteds=[mos.flatten().cpu().numpy() for mos in MOSpredicteds]
         #MOSs= MOSs.numpy()[mos.cpu().flatten().numpy() for mos in MOSs]

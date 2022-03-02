@@ -12,7 +12,7 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=
     nb_images = len(patches)
     i=0
     score, weigth, pred, gt = position
-    print(gt.shape)
+    #print(gt.shape)
     for im in range(nb_images):
         fig = plt.figure(figsize=(24,12))
         ax1 = fig.add_subplot(1,3,(1,2))

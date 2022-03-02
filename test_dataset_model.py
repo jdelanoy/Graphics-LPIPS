@@ -28,6 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
     parser.add_argument('--npatches', type=int, default=65, help='# randomly sampled image patches')
     parser.add_argument('--nInputImg', type=int, default=4, help='# stimuli/images in each batch')
+    parser.add_argument('--n_tests', type=int, default=1, help='# stimuli/images in each batch')
     ##missing : new options for weights/fc, nb patches
     parser.add_argument('--model_path', type=str, default=None, help='location of model, will default to ./weights/v[version]/[net_name].pth')
     parser.add_argument('--output_dir', type=str, default=None, help='location of model, will default to ./weights/v[version]/[net_name].pth')
@@ -52,8 +53,11 @@ if __name__ == '__main__':
             data_loader = dl.CreateDataLoader(dataset,dataset_mode='2afc', load_size=load_size, batch_size=opt.batch_size, nThreads=opt.nThreads, Nbpatches= opt.npatches, shuffle=True, multiview=opt.multiview)
             # evaluate model on data
             tester = lpips.Tester(trainer,data_loader)
-            resTestSet  = tester.run_test_set(name=dataset,stop_after=1)
-            patches, outputs, stimulus = tester.get_current_patches_outputs(opt.nInputImg)
-            plot_patches(opt.output_dir, 0, patches, outputs, "test_patches", stimulus=stimulus, jitter=not opt.weight_patch)
+            # if opt.one_test:
+            #     resTestSet  = tester.run_test_set(name=dataset,stop_after=1)
+            #     patches, outputs, stimulus = tester.get_current_patches_outputs(opt.nInputImg)
+            #     plot_patches(opt.output_dir, 0, patches, outputs, "test_patches", stimulus=stimulus, jitter=not opt.weight_patch)
+            # else:
+            resTestSet  = tester.run_test_set(name=dataset,stop_after=opt.n_tests, to_plot_patches=True, output_dir=opt.output_dir)
             print('  Dataset [%s]: spearman %.2f'%(dataset,resTestSet['SROCC']))
 
