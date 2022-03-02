@@ -59,7 +59,7 @@ class LPIPS(nn.Module):
         if self.fc_on_diff:
             self.fc1_score = nn.Linear(31872, 512)
             self.fc2_score = nn.Linear(512,1)
-            #self.ref_score_subtract = nn.Linear(1,1)
+            self.ref_score_subtract = nn.Linear(1,1)
             self.tanh_score = tanh_score
         if self.weight_patch:
             self.fc1_weight = nn.Linear(2304 if not weight_multiscale else 31872,512)

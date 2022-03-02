@@ -144,11 +144,12 @@ if __name__ == '__main__':
                     (epoch, nb_batches*epoch))
             trainer.save(opt.save_dir, 'latest')
             trainer.save(opt.save_dir, epoch)
-            loss_epoch = loss_epoch/nb_batches
-            print('Epoch Loss %.6f'%loss_epoch)
-            resPerEpoch = dict([('loss_total', loss_epoch)])
-            for key in resPerEpoch.keys():
-                train_visualizer.plot_current_errors_save(epoch, 1.0, opt, resPerEpoch, keys=[key,], name=key, to_plot=opt.train_plot)
+            
+        loss_epoch = loss_epoch/nb_batches
+        print('Epoch Loss %.6f'%loss_epoch)
+        resPerEpoch = dict([('loss_total', loss_epoch)])
+        for key in resPerEpoch.keys():
+            train_visualizer.plot_current_errors_save(epoch, 1.0, opt, resPerEpoch, keys=[key,], name=key, to_plot=opt.train_plot)
 
 
         # Evaluate the Test set at the End of the epoch
@@ -171,6 +172,7 @@ if __name__ == '__main__':
             trainer.update_learning_rate(opt.nepoch_decay, opt.decay_type)
         
 
+    trainer.save(opt.save_dir, epoch)
     # trainer.save_done(True)
     fid.close()
     f_hyperParam.close()
