@@ -7,29 +7,108 @@ import matplotlib.pyplot as plt
 import math
 import random
 # from IPython import embed
+import json, os
+from PIL import Image, ImageDraw
+
+def json_readfile(filename):
+    if(os.path.exists(filename)):
+        with open(filename, 'r') as f:
+            return json.load(f)
+    else:
+        return False
+        
+def compute_maps(patches_id, score, weigth, stimulus):
+    #print("in patches colormap",nb_images)
+    i=0
+    patches_coords = json_readfile("patches_coords.json")
+
+    im_name= stimulus['path'].split('/')[-1]
+    ref_name = im_name.rsplit('_simp',1)[0]
+    #create empty maps
+    #print((stimulus[im]["ref_img"].height,stimulus[im]["ref_img"].width,1))
+    map_weight = np.zeros((stimulus["ref_img"].shape[0],stimulus["ref_img"].shape[1]), np.float32)
+    map_score = np.zeros_like(map_weight)*(-1)
+    nb_patches = np.zeros_like(map_weight)
+    # get the coords of each patch and plot
+    for p in range(len(patches_id)):
+        coords = patches_coords[ref_name][patches_id[p]]
+        #print("patch",ref_name,patches_id[im][p],coords)
+        for i in range (coords[0]-32,coords[0]+32):
+            for j in range (coords[1]-32,coords[1]+32):
+                map_weight[j,i] += weigth[p]
+                map_score[j,i] += score[p]
+                nb_patches[j,i] += 1
+                # if (i==coords[0]-32 or j==coords[1]-32 or i==coords[0]+31 or j==coords[1]+31):
+                #     stimulus[im]["distorted_img"][j,i] = [255,0,0]
+    return map_weight/nb_patches, map_score/nb_patches
+
+def patches_colormap(path, epoch, patches, position, name='', stimulus=None, jitter=False):
+    nb_images = len(patches[0])
+    #print("in patches colormap",nb_images)
+    i=0
+    score, weigth, _, _ = position
+    _, patches_id = patches
+    for im in range(nb_images):
+        fig = plt.figure(figsize=(12,12))
+        map_weight, map_score = compute_maps(patches_id[im],score[im], weigth[im], stimulus[im])
+        #map_score /= nb_patches
+        ax = fig.add_subplot(221)
+        ax.imshow(stimulus[im]["ref_img"])
+        ax.set_title("Ref")
+        ax.set_axis_off()
+        ax = fig.add_subplot(222)
+        ax.imshow(stimulus[im]["distorted_img"])
+        ax.set_title("Distorted")
+        ax.set_axis_off()
+        ax = fig.add_subplot(223)
+        ax.imshow(map_score)
+        ax.set_title("Scores")
+        ax.set_axis_off()
+        ax = fig.add_subplot(224)
+        ax.imshow(map_weight)
+        ax.set_title("Weights")
+        ax.set_axis_off()
+        plot_name  = os.path.join(path,f"{name}_{epoch}_{im}.png")
+        plt.savefig(plot_name, dpi=150, bbox_inches='tight') 
+        fig.clf()
+        plt.close()
 
 def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=False):
-    nb_images = len(patches)
-    i=0
+    #i=0
     score, weigth, pred, gt = position
+    patches, patches_id = patches
+    nb_images = len(patches)
     #print(gt.shape)
     for im in range(nb_images):
-        fig = plt.figure(figsize=(24,12))
-        ax1 = fig.add_subplot(1,3,(1,2))
+        map_weight, map_score = compute_maps(patches_id[im],score[im], weigth[im], stimulus[im])
+        fig = plt.figure(figsize=(12,17))
+        plt.tight_layout()
+        plt.subplot(4,1,(1,2))
         for p in range(len(patches[im])):
             #print(position[0][im][p], position[1][im][p])
-            util.imscatter(score[im][p], weigth[im][p]+(random.uniform(0,0.1) if jitter else 0), image=patches[im][p], color='white',zoom=1,ax=ax1)
-        ax1.set_xlim((-0.8,1.2))
-        ax1.vlines([0,1],ax1.get_ylim()[0],ax1.get_ylim()[1])
-        ax1.set_title(f"{stimulus[im]['path'].split('/')[-1]},\n Predicted:{pred[im]}, GT:{gt[im]}")
-        ax2 = fig.add_subplot(233)
-        ax2.imshow(stimulus[im]["ref_img"])
-        ax2.set_title("Ref")
-        ax2.set_axis_off()
-        ax3 = fig.add_subplot(236)
-        ax3.imshow(stimulus[im]["distorted_img"])
-        ax3.set_title("Distorted")
-        ax3.set_axis_off()
+            util.imscatter(score[im][p].cpu(), weigth[im][p]+(random.uniform(0,0.1) if jitter else 0), image=patches[im][p], color='white',zoom=0.8)
+        plt.xlim((-0.25,1.25))
+        plt.axvline(0)
+        plt.axvline(1)
+        plt.title(f"{stimulus[im]['path'].split('/')[-1]},\n Predicted:{pred[im]}, GT:{gt[im]}")
+        #images
+        plt.subplot(425)
+        plt.imshow(stimulus[im]["ref_img"])
+        plt.title("Ref")
+        plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
+        plt.subplot(426)
+        plt.imshow(stimulus[im]["distorted_img"])
+        plt.title("Distorted")
+        plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
+        #maps
+        plt.subplot(427)
+        plt.imshow(map_score)
+        plt.title("Scores")
+        plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
+        plt.subplot(428)
+        plt.imshow(map_weight)
+        plt.title("Weights")
+        plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
         plot_name  = os.path.join(path,f"{name}_{epoch}_{im}.png")
         plt.savefig(plot_name, dpi=150, bbox_inches='tight') #"data/classification_umap.pdf")
         fig.clf()

@@ -25,22 +25,29 @@ def get_full_images(patch_paths, nb_images, nb_patches):
         dis_path = path.rsplit('_',1)[0].split("/")[-1]
         ref_path = dis_path.rsplit('_simp',1)[0]
         root_folder = path.rsplit('/',2)[0]
-        ref_img = Image.open(os.path.join(root_folder,"References/VP1",ref_path+"_Ref.png")).convert('RGB')
-        dis_img = Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP1",dis_path+".png")).convert('RGB')
+        ref_img = np.asarray(Image.open(os.path.join(root_folder,"References/VP1",ref_path+"_Ref.png")).convert('RGB'))
+        dis_img = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP1",dis_path+".png")).convert('RGB'))
         images.append({"path":dis_path, "ref_img": ref_img, "distorted_img": dis_img})
     return images
 
-def get_img_patches_from_data(input, nb_images, nb_patches):
+def get_img_patches_from_data(input, patch_paths, nb_images, nb_patches):
     patches = []
+    patch_ids = []
     i = 0
     for _ in range(nb_images):
         img_patch = []
+        ids = []
         for _ in range(nb_patches):
-            if(i >= input.shape[0]) : return patches
+            if(i >= input.shape[0]) : return patches, patch_ids
             img_patch.append(lpips.tensor2im(input[i:i+1].data))
+            ids.append(int(patch_paths[i].rsplit('P',1)[1][:-4]))
+            #print(patch_paths[i], ids[-1])
+            #plt.imshow(img_patch[-1])
+            #plt.show()
             i += 1
         patches.append(img_patch)
-    return patches
+        patch_ids.append(ids)
+    return patches, patch_ids
 
 def average_per_stimuli(d0, gt_score, stimulus):
     # In the following: we aggregate gt & d0 per stimulus (over all the patches of the same stimulus)
@@ -301,7 +308,7 @@ class Tester():
     def get_current_patches_outputs(self, nb_images, force_update=False):
         if not hasattr(self, 'patches') or force_update:
             #get the patches and the full images only once
-            self.patches = get_img_patches_from_data(self.input_p0, nb_images, self.nb_patches)
+            self.patches = get_img_patches_from_data(self.input_p0, self.path, nb_images, self.nb_patches)
             self.images = get_full_images(self.path, nb_images, self.nb_patches)
         return self.patches, self.outputs, self.images
 
@@ -346,6 +353,7 @@ class Tester():
                 if to_plot_patches:
                     patches, outputs, stimulus = self.get_current_patches_outputs(len(MOS), force_update=True)
                     plot_patches(output_dir, 0, patches, outputs, f"test_patches_{val_steps}", stimulus=stimulus, jitter=not self.weight_patch)
+                    #patches_colormap(output_dir, 0, patches, outputs, f"test_colormap_{val_steps}", stimulus=stimulus, jitter=not self.weight_patch)
 
                 if stop_after > 0 and val_steps>=stop_after: break
 
