@@ -15,6 +15,7 @@ import csv
 from PIL import Image
 from tqdm import tqdm
 from util.visualizer import plot_patches
+import torchvision.transforms as transforms
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -60,6 +61,12 @@ f.writelines('p0,lpips_alex,MOS\n')
 List_MOS = []
 List_GraphicsLPIPS= []
 
+transform_list = []
+transform_list.append(transforms.Resize(64))
+transform_list += [transforms.ToTensor(),
+    transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
+transform = transforms.Compose(transform_list)
+
 with open(opt.csvfile) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
@@ -84,8 +91,15 @@ with open(opt.csvfile) as csv_file:
                     stimuluspatch = dist + '_P' + str(p) + '.png'
                     stimuluspath = os.path.join(root_distPatches, stimuluspatch)
                         
-                    img0 = lpips.im2tensor(lpips.load_image(refpath)) # RGB image from [-1,1]
-                    img1 = lpips.im2tensor(lpips.load_image(stimuluspath))
+
+                    img0 = transform(Image.open(refpath).convert('RGB'))
+                    img1 = transform(Image.open(stimuluspath).convert('RGB'))
+                    img0 = img0[None]
+                    img1 = img1[None]
+                    #print(img0.shape)
+                    #img0 = lpips.im2tensor(lpips.load_image(refpath)) # RGB image from [-1,1]
+                    #img1 = lpips.im2tensor(lpips.load_image(stimuluspath))
+                    #print(img0.shape)
                     
                     if(opt.use_gpu):
                         img0 = img0.cuda()
