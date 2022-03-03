@@ -37,8 +37,8 @@ def compute_maps(patches_id, score, weigth, stimulus):
         if coords[2] == 1: #compute map only for v1
             for i in range (coords[0]-32,coords[0]+32):
                 for j in range (coords[1]-32,coords[1]+32):
-                    map_weight[j,i] += weigth[p].cpu()
-                    map_score[j,i] += score[p].cpu()
+                    map_weight[j,i] += weigth[p].item()
+                    map_score[j,i] += score[p].item()
                     nb_patches[j,i] += 1
                     # if (i==coords[0]-32 or j==coords[1]-32 or i==coords[0]+31 or j==coords[1]+31):
                     #     stimulus[im]["distorted_img"][j,i] = [255,0,0]
@@ -89,7 +89,7 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=
         plt.subplot(4,1,(1,2))
         for p in range(len(patches[im])):
             #print(position[0][im][p], position[1][im][p])
-            util.imscatter(score[im][p].cpu(), weigth[im][p].cpu()+(random.uniform(0,0.1) if jitter else 0), image=patches[im][p], color='white',zoom=0.8)
+            util.imscatter(score[im][p].item(), weigth[im][p].item()+(random.uniform(0,0.1) if jitter else 0), image=patches[im][p], color='white',zoom=0.8)
         plt.xlim((-0.5,1.5))
         plt.axvline(0)
         plt.axvline(1)
