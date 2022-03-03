@@ -69,14 +69,7 @@ def average_per_stimuli(d0, gt_score, stimulus):
     predicted_score_reshaped = torch.reshape(predicted_score, (NbuniqueStimuli,NbpatchesPerStimulus,1,1)) #(5,10,1,1) : 5 stimuli * 10 patches/stimulus => after aggregation : 5 MOS_predicted values
     patch_weight_reshaped = torch.reshape(patch_weight, (NbuniqueStimuli,NbpatchesPerStimulus,1,1))
 
-    product_val = torch.mul(patch_weight_reshaped,predicted_score_reshaped)
-    #print("product_val", product_val.shape)
-    sum_product_val = torch.sum(product_val, 1, True)
-    #print("sum_product_val", sum_product_val.shape)
-    norm_factor = torch.sum(patch_weight_reshaped,1,True)
-    #print("norm_factor", norm_factor.shape)
-    mos_predict = torch.div(sum_product_val, norm_factor)
-
+    mos_predict = torch.sum(torch.mul(patch_weight_reshaped,predicted_score_reshaped), 1, True)/torch.sum(patch_weight_reshaped,1,True)
     #mos_predict = torch.mean(predicted_score_reshaped, 1, True)
 
     return mos_predict, mos   
