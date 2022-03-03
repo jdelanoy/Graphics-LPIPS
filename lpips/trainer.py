@@ -345,7 +345,7 @@ class Tester():
 
                 if to_plot_patches:
                     patches, outputs, stimulus = self.get_current_patches_outputs(len(MOS), force_update=True)
-                    plot_patches(output_dir, 0, patches, outputs, f"test_patches_{val_steps}", stimulus=stimulus, jitter=not self.weight_patch)
+                    plot_patches(output_dir, 0, patches, outputs, f"test_", stimulus=stimulus, jitter=not self.weight_patch)
                     #patches_colormap(output_dir, 0, patches, outputs, f"test_colormap_{val_steps}", stimulus=stimulus, jitter=not self.weight_patch)
 
                 if stop_after > 0 and val_steps>=stop_after: break
