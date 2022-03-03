@@ -31,15 +31,17 @@ def compute_maps(patches_id, score, weigth, stimulus):
     nb_patches = np.zeros_like(map_weight)
     # get the coords of each patch and plot
     for p in range(len(patches_id)):
-        coords = patches_coords[ref_name][patches_id[p]]
+        #print("patch",ref_name,patches_id[p])
+        coords = patches_coords[ref_name][patches_id[p]-1]
         #print("patch",ref_name,patches_id[im][p],coords)
-        for i in range (coords[0]-32,coords[0]+32):
-            for j in range (coords[1]-32,coords[1]+32):
-                map_weight[j,i] += weigth[p].cpu()
-                map_score[j,i] += score[p].cpu()
-                nb_patches[j,i] += 1
-                # if (i==coords[0]-32 or j==coords[1]-32 or i==coords[0]+31 or j==coords[1]+31):
-                #     stimulus[im]["distorted_img"][j,i] = [255,0,0]
+        if coords[2] == 1: #compute map only for v1
+            for i in range (coords[0]-32,coords[0]+32):
+                for j in range (coords[1]-32,coords[1]+32):
+                    map_weight[j,i] += weigth[p].cpu()
+                    map_score[j,i] += score[p].cpu()
+                    nb_patches[j,i] += 1
+                    # if (i==coords[0]-32 or j==coords[1]-32 or i==coords[0]+31 or j==coords[1]+31):
+                    #     stimulus[im]["distorted_img"][j,i] = [255,0,0]
     return map_weight/nb_patches, map_score/nb_patches
 
 def patches_colormap(path, epoch, patches, position, name='', stimulus=None, jitter=False):
@@ -80,6 +82,7 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=
     nb_images = len(patches)
     #print(gt.shape)
     for im in range(nb_images):
+        im_name=stimulus[im]['path'].split('/')[-1]
         map_weight, map_score = compute_maps(patches_id[im],score[im], weigth[im], stimulus[im])
         fig = plt.figure(figsize=(12,17))
         plt.tight_layout()
@@ -87,10 +90,10 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=
         for p in range(len(patches[im])):
             #print(position[0][im][p], position[1][im][p])
             util.imscatter(score[im][p].cpu(), weigth[im][p].cpu()+(random.uniform(0,0.1) if jitter else 0), image=patches[im][p], color='white',zoom=0.8)
-        plt.xlim((-0.25,1.25))
+        plt.xlim((-0.5,1.5))
         plt.axvline(0)
         plt.axvline(1)
-        plt.title(f"{stimulus[im]['path'].split('/')[-1]},\n Predicted:{pred[im]}, GT:{gt[im]}")
+        plt.title(f"{im_name},\n Predicted:{pred[im].item()}, GT:{gt[im].item()}")
         #images
         plt.subplot(425)
         plt.imshow(stimulus[im]["ref_img"])
@@ -102,14 +105,14 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=
         plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
         #maps
         plt.subplot(427)
-        plt.imshow(map_score)
+        plt.imshow(map_score, vmin=-0.25, vmax=1.25)
         plt.title("Scores")
         plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
         plt.subplot(428)
         plt.imshow(map_weight)
         plt.title("Weights")
         plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
-        plot_name  = os.path.join(path,f"{name}_{epoch}_{im}.png")
+        plot_name  = os.path.join(path,f"{name}_{epoch}_{im_name}.png")
         plt.savefig(plot_name, dpi=150, bbox_inches='tight') #"data/classification_umap.pdf")
         fig.clf()
         plt.close()
