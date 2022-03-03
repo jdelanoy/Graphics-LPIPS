@@ -93,7 +93,7 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=
         plt.xlim((-0.5,1.5))
         plt.axvline(0)
         plt.axvline(1)
-        plt.title(f"{im_name},\n Predicted:{pred[im].item()}, GT:{gt[im].item()}")
+        plt.title(f"{im_name},\n Predicted:{pred[im].item():.2f}, GT:{gt[im].item():.2f}")
         #images
         plt.subplot(425)
         plt.imshow(stimulus[im]["ref_img"])
