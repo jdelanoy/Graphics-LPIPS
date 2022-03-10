@@ -135,7 +135,6 @@ with open(opt.csvfile) as csv_file:
 
             f.writelines('%s, %.6f, %s\n'%(dist,MOSpredicted,MOS))
             line_count +=1
-        if line_count>4: break
 
 
 List_GraphicsLPIPS = np.array(List_GraphicsLPIPS)
