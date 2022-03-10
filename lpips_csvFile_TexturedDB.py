@@ -13,7 +13,7 @@ import csv
 # from statistics import mean
 # from decimal import Decimal
 from PIL import Image
-from tqdm import tqdm
+import tqdm
 from util.visualizer import plot_patches
 import torchvision.transforms as transforms
 
@@ -70,7 +70,7 @@ transform = transforms.Compose(transform_list)
 with open(opt.csvfile) as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
     line_count = 0
-    for row in tqdm(csv_reader, desc="test_set"):
+    for row in tqdm.tqdm(csv_reader, total=604):
         if line_count == 0:
             #print(f'Column names are {", ".join(row)}')
             line_count += 1
@@ -79,7 +79,7 @@ with open(opt.csvfile) as csv_file:
                 dist = row[1]
                 model = row[0]
                 MOS = float(row[2])
-                nbPatches = int(row[3])# for VP1
+                nbPatches = int(row[3]) if not opt.multiview else int(row[3]) + int(row[4]) + int(row[5]) + int(row[6])
                 
                 res_score = []
                 res_weight = []
@@ -131,13 +131,18 @@ with open(opt.csvfile) as csv_file:
             dis_img = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP1",dis_path+".png")).convert('RGB'))
             images = [{"path":dis_path, "ref_img": ref_img, "distorted_img": dis_img}]
             #print((patches, patches_id),outputs)
-            plot_patches(opt.output_dir, 0, ([patches], [patches_id]), outputs, f"test_", stimulus=images, jitter=not opt.weight_patch)
+            plot_patches(opt.output_dir, 0, ([patches], [patches_id]), outputs, f"test_", stimulus=images, jitter=not opt.weight_patch, multiview=opt.multiview)
 
             f.writelines('%s, %.6f, %s\n'%(dist,MOSpredicted,MOS))
+            line_count +=1
+        if line_count>4: break
 
-f.close()
+
 List_GraphicsLPIPS = np.array(List_GraphicsLPIPS)
 List_MOS = np.array(List_MOS)
+
+f.writelines('l1, %.3f\n'%np.sum(np.abs(List_GraphicsLPIPS-List_MOS)))
+f.writelines('l2, %.3f\n'%np.sum((List_GraphicsLPIPS-List_MOS)**2))
 
 # Instantiate a binomial family model with the logit link function (the default link function).
 List_GraphicsLPIPS = sm.add_constant(List_GraphicsLPIPS)
@@ -147,7 +152,13 @@ res_regModel = glm_binom.fit()
 fitted_GraphicsLpips = res_regModel.predict()
 corrPears =  stats.pearsonr(fitted_GraphicsLpips, List_MOS)[0]
 corrSpear =  stats.spearmanr(fitted_GraphicsLpips, List_MOS)[0]
-print('pearson %.3f'%corrPears)
-print('spearman %.3f'%corrSpear)
+
+f.writelines('pearson, %.3f\n'%corrPears)
+f.writelines('spearman, %.3f\n'%corrSpear)
+
+
+
+
+f.close()
 
 
