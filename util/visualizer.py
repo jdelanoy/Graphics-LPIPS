@@ -87,7 +87,7 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, have_we
         im_name=stimulus[im]['path'].split('/')[-1]
         fig = plt.figure(figsize=(12,14+3*nviews))
         plt.tight_layout()
-        plt.subplot(nrows,1,(1,2))
+        plt.subplot(nrows,1,(2,3))
         for p in range(len(patches[im])):
             #print(position[0][im][p], position[1][im][p])
             util.imscatter(score[im][p].item(), weigth[im][p].item()+(0 if have_weight else random.uniform(0,0.1)), image=patches[im][p], color='white',zoom=0.8)
@@ -96,11 +96,11 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, have_we
         plt.axvline(1)
         plt.title(f"{im_name},\n Predicted:{pred[im].item():.2f}, GT:{gt[im].item():.2f}")
         #images
-        plt.subplot(nrows,2,5)
+        plt.subplot(nrows,2,1)
         plt.imshow(stimulus[im]["ref_img"])
         plt.title("Ref")
         plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
-        plt.subplot(nrows,2,6)
+        plt.subplot(nrows,2,2)
         plt.imshow(stimulus[im]["distorted_img1"])
         plt.title("Distorted")
         plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
