@@ -33,6 +33,7 @@ parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top
 parser.add_argument('--weight_multiscale', action='store_true', help='gives all the features to weight branch. If False, gives only last feature map')
 parser.add_argument('--multiview', action='store_true', help='use patches from different views')
 parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
+parser.add_argument('--do_plots', action='store_true', help='plot the maps')
 
 parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
 
@@ -122,19 +123,19 @@ with open(opt.csvfile) as csv_file:
             List_GraphicsLPIPS.append(MOSpredicted.item())
             List_MOS.append((MOS))
 
-            outputs = [res_score],[res_weight], [MOSpredicted], [torch.FloatTensor([MOS])]
-
-            dis_path = dist
-            ref_path = model
-            root_folder = dirroots
-            ref_img = np.asarray(Image.open(os.path.join(root_folder,"References/VP1",ref_path+"_Ref.png")).convert('RGB'))
-            dis_img1 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP1",dis_path+".png")).convert('RGB'))
-            dis_img2 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP2",dis_path+".png")).convert('RGB'))
-            dis_img3 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP3",dis_path+".png")).convert('RGB'))
-            dis_img4 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP4",dis_path+".png")).convert('RGB'))
-            images = [{"path":dis_path, "ref_img": ref_img, "distorted_img1": dis_img1, "distorted_img2": dis_img2, "distorted_img3": dis_img3, "distorted_img4": dis_img4}]
-            #print((patches, patches_id),outputs)
-            plot_patches(opt.output_dir, 0, ([patches], [patches_id]), outputs, f"test_", stimulus=images, have_weight=opt.weight_patch, multiview=opt.multiview)
+            if opt.do_plots:
+                outputs = [res_score],[res_weight], [MOSpredicted], [torch.FloatTensor([MOS])]
+                dis_path = dist
+                ref_path = model
+                root_folder = dirroots
+                ref_img = np.asarray(Image.open(os.path.join(root_folder,"References/VP1",ref_path+"_Ref.png")).convert('RGB'))
+                dis_img1 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP1",dis_path+".png")).convert('RGB'))
+                dis_img2 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP2",dis_path+".png")).convert('RGB'))
+                dis_img3 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP3",dis_path+".png")).convert('RGB'))
+                dis_img4 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP4",dis_path+".png")).convert('RGB'))
+                images = [{"path":dis_path, "ref_img": ref_img, "distorted_img1": dis_img1, "distorted_img2": dis_img2, "distorted_img3": dis_img3, "distorted_img4": dis_img4}]
+                #print((patches, patches_id),outputs)
+                plot_patches(opt.output_dir, 0, ([patches], [patches_id]), outputs, f"test_", stimulus=images, have_weight=opt.weight_patch, multiview=opt.multiview)
 
             f.writelines('%s, %.6f, %s\n'%(dist,MOSpredicted,MOS))
             line_count +=1
