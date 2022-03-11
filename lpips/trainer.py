@@ -26,8 +26,11 @@ def get_full_images(patch_paths, nb_images, nb_patches):
         ref_path = dis_path.rsplit('_simp',1)[0]
         root_folder = path.rsplit('/',2)[0]
         ref_img = np.asarray(Image.open(os.path.join(root_folder,"References/VP1",ref_path+"_Ref.png")).convert('RGB'))
-        dis_img = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP1",dis_path+".png")).convert('RGB'))
-        images.append({"path":dis_path, "ref_img": ref_img, "distorted_img": dis_img})
+        dis_img1 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP1",dis_path+".png")).convert('RGB'))
+        dis_img2 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP2",dis_path+".png")).convert('RGB'))
+        dis_img3 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP3",dis_path+".png")).convert('RGB'))
+        dis_img4 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP4",dis_path+".png")).convert('RGB'))
+        images.append({"path":dis_path, "ref_img": ref_img, "distorted_img1": dis_img1, "distorted_img2": dis_img2, "distorted_img3": dis_img3, "distorted_img4": dis_img4})
     return images
 
 def get_img_patches_from_data(input, patch_paths, nb_images, nb_patches):
@@ -345,7 +348,7 @@ class Tester():
 
                 if to_plot_patches:
                     patches, outputs, stimulus = self.get_current_patches_outputs(len(MOS), force_update=True)
-                    plot_patches(output_dir, 0, patches, outputs, f"test_", stimulus=stimulus, jitter=not self.weight_patch)
+                    plot_patches(output_dir, 0, patches, outputs, f"test_", stimulus=stimulus, have_weight=not self.weight_patch)
                     #patches_colormap(output_dir, 0, patches, outputs, f"test_colormap_{val_steps}", stimulus=stimulus, jitter=not self.weight_patch)
 
                 if stop_after > 0 and val_steps>=stop_after: break

@@ -17,7 +17,7 @@ def json_readfile(filename):
     else:
         return False
         
-def compute_maps(patches_id, score, weigth, stimulus, view=1):
+def compute_maps(patches_id, score, weight, stimulus, view=1):
     #print("in patches colormap",nb_images)
     i=0
     patches_coords = json_readfile("patches_coords.json")
@@ -37,7 +37,7 @@ def compute_maps(patches_id, score, weigth, stimulus, view=1):
         if coords[2] == view: #compute map only for given view
             for i in range (coords[0]-32,coords[0]+32):
                 for j in range (coords[1]-32,coords[1]+32):
-                    map_weight[j,i] += weigth[p].item()
+                    map_weight[j,i] += weight[p].item()
                     map_score[j,i] += score[p].item()
                     nb_patches[j,i] += 1
                     # if (i==coords[0]-32 or j==coords[1]-32 or i==coords[0]+31 or j==coords[1]+31):
@@ -75,7 +75,7 @@ def patches_colormap(path, epoch, patches, position, name='', stimulus=None, jit
         fig.clf()
         plt.close()
 
-def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=False, multiview=False):
+def plot_patches(path, epoch, patches, position, name='', stimulus=None, have_weight=True, multiview=False):
     #i=0
     score, weigth, pred, gt = position
     patches, patches_id = patches
@@ -90,7 +90,7 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=
         plt.subplot(nrows,1,(1,2))
         for p in range(len(patches[im])):
             #print(position[0][im][p], position[1][im][p])
-            util.imscatter(score[im][p].item(), weigth[im][p].item()+(random.uniform(0,0.1) if jitter else 0), image=patches[im][p], color='white',zoom=0.8)
+            util.imscatter(score[im][p].item(), weigth[im][p].item()+(0 if have_weight else random.uniform(0,0.1)), image=patches[im][p], color='white',zoom=0.8)
         plt.xlim((-0.5,1.5))
         plt.axvline(0)
         plt.axvline(1)
@@ -101,7 +101,7 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=
         plt.title("Ref")
         plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
         plt.subplot(nrows,2,6)
-        plt.imshow(stimulus[im]["distorted_img"])
+        plt.imshow(stimulus[im]["distorted_img1"])
         plt.title("Distorted")
         plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
         #maps
@@ -112,8 +112,12 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, jitter=
             plt.title("Scores")
             plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
             plt.subplot(nrows,2,8+(v*2))
-            plt.imshow(map_weight)
-            plt.title("Weights")
+            if have_weight:
+                plt.imshow(map_weight)
+                plt.title("Weights")
+            else:
+                plt.imshow(stimulus[im]["distorted_img"+str(v+1)])
+                plt.title("Distorted "+str(v+1))
             plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
         #save plot
         plot_name  = os.path.join(path,f"{name}_{epoch}_{im_name}.png")
