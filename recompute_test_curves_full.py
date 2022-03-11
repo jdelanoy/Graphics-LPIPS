@@ -156,11 +156,41 @@ for model_path in (opt.model_path):
 
     fits.append(corrPears)
 
+output_path=opt.output_dir
+
+
+
+
+# import argparse
+# from glob import glob
+# import os
+
+# #from matplotlib import patches
+
+# import torchvision.transforms as transforms
+# from matplotlib import pyplot as plt
+# import numpy as np
+
+# output_path="checkpoints/YanaParam_40epoch_nodecay_4images_100patches/test_full"
+
+# x=np.load(os.path.join(output_path,"loss_x.npy"))
+# losses=np.load(os.path.join(output_path,"loss_y.npy"))
+# l2s=np.load(os.path.join(output_path,"MSE_y.npy"))
+# srocc=np.load(os.path.join(output_path,"SROCC_y.npy"))
+
+
+
+
+sorting=np.argsort(x)
+x = x[sorting]
+l2s = l2s[sorting]
+losses = losses[sorting]
+srocc = srocc[sorting]
 
 def save_values(x,y,name,output_path):
     np.save(os.path.join(output_path,name+"_y.npy"),y)
     np.save(os.path.join(output_path,name+"_x.npy"),x)
-    plt.plot(x,losses)
+    plt.plot(x,y)
     plt.savefig(os.path.join(output_path,name+".png"))
     plt.clf()
 
