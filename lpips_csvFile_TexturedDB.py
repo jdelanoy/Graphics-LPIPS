@@ -146,6 +146,7 @@ List_MOS = np.array(List_MOS)
 
 f.writelines('l1, %.3f\n'%np.sum(np.abs(List_GraphicsLPIPS-List_MOS)))
 f.writelines('l2, %.3f\n'%np.sum((List_GraphicsLPIPS-List_MOS)**2))
+f.writelines('srocc, %.3f\n'%stats.spearmanr(List_GraphicsLPIPS, List_MOS)[0])
 
 # Instantiate a binomial family model with the logit link function (the default link function).
 List_GraphicsLPIPS = sm.add_constant(List_GraphicsLPIPS)
@@ -156,8 +157,8 @@ fitted_GraphicsLpips = res_regModel.predict()
 corrPears =  stats.pearsonr(fitted_GraphicsLpips, List_MOS)[0]
 corrSpear =  stats.spearmanr(fitted_GraphicsLpips, List_MOS)[0]
 
-f.writelines('pearson, %.3f\n'%corrPears)
-f.writelines('spearman, %.3f\n'%corrSpear)
+f.writelines('pearson fit, %.3f\n'%corrPears)
+f.writelines('spearman fit, %.3f\n'%corrSpear)
 
 
 
