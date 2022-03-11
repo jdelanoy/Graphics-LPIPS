@@ -144,8 +144,8 @@ with open(opt.csvfile) as csv_file:
 List_GraphicsLPIPS = np.array(List_GraphicsLPIPS)
 List_MOS = np.array(List_MOS)
 
-f.writelines('l1, %.3f\n'%np.sum(np.abs(List_GraphicsLPIPS-List_MOS)))
-f.writelines('l2, %.3f\n'%np.sum((List_GraphicsLPIPS-List_MOS)**2))
+f.writelines('l1, %.3f\n'%np.mean(np.abs(List_GraphicsLPIPS-List_MOS)))
+f.writelines('l2, %.3f\n'%np.mean((List_GraphicsLPIPS-List_MOS)**2))
 f.writelines('srocc, %.3f\n'%stats.spearmanr(List_GraphicsLPIPS, List_MOS)[0])
 
 # Instantiate a binomial family model with the logit link function (the default link function).
