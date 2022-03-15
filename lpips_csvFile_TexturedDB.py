@@ -58,7 +58,7 @@ os.makedirs(opt.output_dir,exist_ok=True)
 
 ## Output file
 f = open(opt.output_dir+"/GraphicsLPIPS_TestsetScores.csv",'w')
-f.writelines('p0,lpips_alex,MOS,var_score,var_weight,entropy_score,entropy_weight, spearm corr, pears corr\n')
+f.writelines('model,p0,lpips_alex,MOS,var_score,var_weight,entropy_score,entropy_weight, spearm corr, pears corr\n')
 
 ## read Input csv file 
 List_MOS = []
@@ -153,7 +153,7 @@ with open(opt.csvfile) as csv_file:
                 #print((patches, patches_id),outputs)
                 plot_patches(opt.output_dir, 0, ([patches], [patches_id]), outputs, f"test_", stimulus=images, have_weight=opt.weight_patch, multiview=opt.multiview)
 
-            f.writelines('%s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(dist,MOSpredicted,MOS,var_score,var_weight,entropy_score,entropy_weight, spearm, pears))
+            f.writelines('%s, %s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(model,dist,MOSpredicted,MOS,var_score,var_weight,entropy_score,entropy_weight, spearm, pears))
             line_count +=1
 
 
