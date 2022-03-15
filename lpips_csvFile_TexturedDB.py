@@ -6,7 +6,7 @@ import lpips
 import torch
 import numpy as np
 import statsmodels.api as sm
-from scipy import stats
+from scipy import stats, ndimage
 import csv
 # from itertools import groupby
 # from operator import itemgetter
@@ -56,11 +56,12 @@ if(opt.use_gpu):
     
 ## Output file
 f = open(opt.output_dir+"/GraphicsLPIPS_TestsetScores.csv",'w')
-f.writelines('p0,lpips_alex,MOS\n')
+f.writelines('p0,lpips_alex,MOS,var_score,var_weight,entropy_score,entropy_weight, spearm corr, pears corr\n')
 
 ## read Input csv file 
 List_MOS = []
 List_GraphicsLPIPS= []
+List_measures = []
 
 transform_list = []
 transform_list.append(transforms.Resize(64))
@@ -113,7 +114,20 @@ with open(opt.csvfile) as csv_file:
                     #store the patches and everything to launch plot
                     patches.append(lpips.tensor2im(img1.data))
                     patches_id.append(p)
-    
+
+            res_score_np = [score.item() for score in res_score]
+            res_weight_np = [weight.item() for weight in res_weight]
+            # compute the correlation between scores and weights
+            spearm = stats.spearmanr(res_score_np,res_weight_np)[0]
+            pears = stats.pearsonr(res_score_np,res_weight_np)[0]
+            # compute uniformity: variance and Shannon entropy
+            var_score = stats.tstd(res_score_np)
+            entropy_score = stats.entropy(ndimage.histogram(res_score_np,-1,2,30))
+            #print(ndimage.histogram(res_score_np,-1,2,30), entropy_score, var_score)
+            var_weight = stats.tstd(res_weight_np)
+            entropy_weight = stats.entropy(ndimage.histogram(res_weight_np,0,max(res_weight_np),50))
+            #print(ndimage.histogram(res_weight_np,0,max(res_weight_np),50), entropy_weight, var_weight)
+            List_measures.append({"var_score":var_score,"var_weight":var_weight,"entropy_score":entropy_score,"entropy_weight":entropy_weight})
 
             MOSpredicted = sum([score*weight for score,weight in zip(res_score,res_weight)])/sum(res_weight)
             #print(MOSpredicted)
@@ -137,7 +151,7 @@ with open(opt.csvfile) as csv_file:
                 #print((patches, patches_id),outputs)
                 plot_patches(opt.output_dir, 0, ([patches], [patches_id]), outputs, f"test_", stimulus=images, have_weight=opt.weight_patch, multiview=opt.multiview)
 
-            f.writelines('%s, %.6f, %s\n'%(dist,MOSpredicted,MOS))
+            f.writelines('%s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(dist,MOSpredicted,MOS,var_score,var_weight,entropy_score,entropy_weight, spearm, pears))
             line_count +=1
 
 
@@ -147,6 +161,7 @@ List_MOS = np.array(List_MOS)
 f.writelines('l1, %.3f\n'%np.mean(np.abs(List_GraphicsLPIPS-List_MOS)))
 f.writelines('l2, %.3f\n'%np.mean((List_GraphicsLPIPS-List_MOS)**2))
 f.writelines('srocc, %.3f\n'%stats.spearmanr(List_GraphicsLPIPS, List_MOS)[0])
+
 
 # Instantiate a binomial family model with the logit link function (the default link function).
 List_GraphicsLPIPS = sm.add_constant(List_GraphicsLPIPS)
