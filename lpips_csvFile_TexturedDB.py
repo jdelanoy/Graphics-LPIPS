@@ -53,7 +53,9 @@ loss_fn = lpips.LPIPS(pretrained=True, net=opt.net,
                 dropout_rate=0.0, tanh_score=opt.tanh_score, weight_multiscale=opt.weight_multiscale)
 if(opt.use_gpu):
 	loss_fn.cuda()
-    
+
+os.makedirs(opt.output_dir,exist_ok=True)
+
 ## Output file
 f = open(opt.output_dir+"/GraphicsLPIPS_TestsetScores.csv",'w')
 f.writelines('p0,lpips_alex,MOS,var_score,var_weight,entropy_score,entropy_weight, spearm corr, pears corr\n')
