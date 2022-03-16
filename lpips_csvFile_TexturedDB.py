@@ -157,7 +157,9 @@ with open(opt.csvfile) as csv_file:
 
             f.writelines('%s, %s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(model,dist,MOSpredicted,MOS,var_score,var_weight,var_score2,var_weight2,entropy_score,entropy_weight, spearm, pears))
             line_count +=1
+f.close()
 
+f = open(opt.output_dir+"/GraphicsLPIPS_global.csv",'w')
 
 List_GraphicsLPIPS = np.array(List_GraphicsLPIPS)
 List_MOS = np.array(List_MOS)
