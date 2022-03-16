@@ -105,15 +105,20 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, have_we
         plt.title("Distorted")
         plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
         #maps
+        maps_weight, maps_score = [],[]
         for v in range(nviews):
             map_weight, map_score = compute_maps(patches_id[im],score[im], weigth[im], stimulus[im], v+1)
+            maps_weight.append(map_weight), maps_score.append(map_score)
+        max_weight = max([np.nanmax(map) for map in maps_weight])
+        print(max_weight)
+        for v in range(nviews):
             plt.subplot(nrows,2,7+(v*2))
-            plt.imshow(map_score, vmin=-0.25, vmax=1.25)
+            plt.imshow(maps_score[v], vmin=-0.25, vmax=1.25)
             plt.title("Scores")
             plt.tick_params(left = False, labelleft = False, labelbottom = False, bottom = False)
             plt.subplot(nrows,2,8+(v*2))
             if have_weight:
-                plt.imshow(map_weight)
+                plt.imshow(maps_weight[v], vmin=0, vmax=max_weight)
                 plt.title("Weights")
             else:
                 plt.imshow(stimulus[im]["distorted_img"+str(v+1)])
