@@ -58,7 +58,7 @@ os.makedirs(opt.output_dir,exist_ok=True)
 
 ## Output file
 f = open(opt.output_dir+"/GraphicsLPIPS_TestsetScores.csv",'w')
-f.writelines('model,p0,lpips_alex,MOS,var_score,var_weight,entropy_score,entropy_weight, spearm corr, pears corr\n')
+f.writelines('model,p0,lpips_alex,MOS,std_score,std_weight,var_score,var_weight,entropy_score,entropy_weight, spearm corr, pears corr\n')
 
 ## read Input csv file 
 List_MOS = []
@@ -124,9 +124,11 @@ with open(opt.csvfile) as csv_file:
             pears = stats.pearsonr(res_score_np,res_weight_np)[0]
             # compute uniformity: variance and Shannon entropy
             var_score = stats.tstd(res_score_np)
+            var_score2 = stats.variation(res_score_np)
             entropy_score = stats.entropy(ndimage.histogram(res_score_np,-1,2,30))
             #print(ndimage.histogram(res_score_np,-1,2,30), entropy_score, var_score)
             var_weight = stats.tstd(res_weight_np)
+            var_weight2 = stats.variation(res_weight_np)
             entropy_weight = stats.entropy(ndimage.histogram(res_weight_np,0,max(res_weight_np),50))
             #print(ndimage.histogram(res_weight_np,0,max(res_weight_np),50), entropy_weight, var_weight)
             List_measures.append({"var_score":var_score,"var_weight":var_weight,"entropy_score":entropy_score,"entropy_weight":entropy_weight})
@@ -153,7 +155,7 @@ with open(opt.csvfile) as csv_file:
                 #print((patches, patches_id),outputs)
                 plot_patches(opt.output_dir, 0, ([patches], [patches_id]), outputs, f"test_", stimulus=images, have_weight=opt.weight_patch, multiview=opt.multiview)
 
-            f.writelines('%s, %s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(model,dist,MOSpredicted,MOS,var_score,var_weight,entropy_score,entropy_weight, spearm, pears))
+            f.writelines('%s, %s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(model,dist,MOSpredicted,MOS,var_score,var_weight,var_score2,var_weight2,entropy_score,entropy_weight, spearm, pears))
             line_count +=1
 
 
