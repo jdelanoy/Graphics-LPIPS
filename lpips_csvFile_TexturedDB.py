@@ -19,7 +19,7 @@ import torchvision.transforms as transforms
 from lpips.trainer import get_img_patches_from_data, get_full_images
 
 
-def do_all_patches_prediction(path, row, multiview, do_plots=False,output_dir=None,weight_patch=False):
+def do_all_patches_prediction(path, row, multiview, use_gpu, do_plots=False,output_dir=None,weight_patch=False):
     transform_list = []
     transform_list.append(transforms.Resize(64))
     transform_list += [transforms.ToTensor(),
@@ -48,7 +48,7 @@ def do_all_patches_prediction(path, row, multiview, do_plots=False,output_dir=No
             img0 = transform(Image.open(refpath).convert('RGB'))[None]
             img1 = transform(Image.open(stimuluspath).convert('RGB'))[None]
 
-            if(opt.use_gpu):
+            if(use_gpu):
                 img0 = img0.cuda()
                 img1 = img1.cuda()
 
@@ -127,7 +127,7 @@ if __name__ == '__main__':
                 dist = row[1]
                 model = row[0]
                 MOS = float(row[2])
-                score,weight, MOSpredicted = do_all_patches_prediction(opt.csvfile, row,opt.multiview, opt.do_plots, opt.output_dir, opt.weight_patch)
+                score,weight, MOSpredicted = do_all_patches_prediction(opt.csvfile, row,opt.multiview, opt.use_gpu, opt.do_plots, opt.output_dir, opt.weight_patch)
 
                 List_GraphicsLPIPS.append(MOSpredicted.item())
                 List_MOS.append((MOS))
