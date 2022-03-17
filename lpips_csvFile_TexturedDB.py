@@ -16,6 +16,7 @@ from PIL import Image
 import tqdm
 from util.visualizer import plot_patches
 import torchvision.transforms as transforms
+from lpips.trainer import get_img_patches_from_data, get_full_images
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -85,10 +86,12 @@ with open(opt.csvfile) as csv_file:
                 MOS = float(row[2])
                 nbPatches = int(row[3]) if not opt.multiview else int(row[3]) + int(row[4]) + int(row[5]) + int(row[6])
                 
-                res_score = []
-                res_weight = []
-                resString =''
-                patches_id, patches = [], []
+                #res_score = []
+                #res_weight = []
+                #resString =''
+                #patches_id, patches = [], []
+                im0_patches, im1_patches = [], []
+                p0_paths, stimuliId, judges = [], [], []
                 for p in range(1, nbPatches +1):
                     refpatch = model + '_Ref_P' + str(p) + '.png'
                     refpath = os.path.join(root_refPatches, refpatch)
@@ -96,29 +99,25 @@ with open(opt.csvfile) as csv_file:
                     stimuluspath = os.path.join(root_distPatches, stimuluspatch)
                         
 
-                    img0 = transform(Image.open(refpath).convert('RGB'))
-                    img1 = transform(Image.open(stimuluspath).convert('RGB'))
-                    img0 = img0[None]
-                    img1 = img1[None]
-                    #print(img0.shape)
-                    #img0 = lpips.im2tensor(lpips.load_image(refpath)) # RGB image from [-1,1]
-                    #img1 = lpips.im2tensor(lpips.load_image(stimuluspath))
-                    #print(img0.shape)
-                    
+                    img0 = transform(Image.open(refpath).convert('RGB'))[None]
+                    img1 = transform(Image.open(stimuluspath).convert('RGB'))[None]
+
                     if(opt.use_gpu):
                         img0 = img0.cuda()
                         img1 = img1.cuda()
-                    
-                    score, weight = loss_fn.forward(img0,img1)
-                    res_score.append(score)
-                    res_weight.append(weight)
 
-                    #store the patches and everything to launch plot
-                    patches.append(lpips.tensor2im(img1.data))
-                    patches_id.append(p)
+                    im0_patches.append(img0)
+                    im1_patches.append(img1)
 
-            res_score_np = [score.item() for score in res_score]
-            res_weight_np = [weight.item() for weight in res_weight]
+                    p0_paths.append(stimuluspath)
+
+
+            im0 = torch.cat(im0_patches,0)
+            im1 = torch.cat(im1_patches,0)
+            score, weight = loss_fn.forward(im0,im1)
+
+            res_score_np = [score.item() for score in score]
+            res_weight_np = [weight.item() for weight in weight]
             # compute the correlation between scores and weights
             spearm = stats.spearmanr(res_score_np,res_weight_np)[0]
             pears = stats.pearsonr(res_score_np,res_weight_np)[0]
@@ -131,29 +130,18 @@ with open(opt.csvfile) as csv_file:
             mean_weight = stats.tmean(res_weight_np)
             entropy_weight = stats.entropy(ndimage.histogram(res_weight_np,0,max(res_weight_np),50))
             #print(ndimage.histogram(res_weight_np,0,max(res_weight_np),50), entropy_weight, var_weight)
-            List_measures.append({"var_score":var_score,"var_weight":var_weight,"entropy_score":entropy_score,"entropy_weight":entropy_weight})
+            #List_measures.append({"var_score":var_score,"var_weight":var_weight,"entropy_score":entropy_score,"entropy_weight":entropy_weight})
 
-            MOSpredicted = sum([score*weight for score,weight in zip(res_score,res_weight)])/sum(res_weight)
-            #print(MOSpredicted)
-            #MOSpredicted = torch.sum(torch.mul(res_weight,res_score), 1, True)/torch.sum(res_weight,1,True)
-
-
+            MOSpredicted = torch.sum(torch.mul(weight,score), 0, True)/torch.sum(weight,0,True)
+            
             List_GraphicsLPIPS.append(MOSpredicted.item())
             List_MOS.append((MOS))
 
             if opt.do_plots:
-                outputs = [res_score],[res_weight], [MOSpredicted], [torch.FloatTensor([MOS])]
-                dis_path = dist
-                ref_path = model
-                root_folder = dirroots
-                ref_img = np.asarray(Image.open(os.path.join(root_folder,"References/VP1",ref_path+"_Ref.png")).convert('RGB'))
-                dis_img1 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP1",dis_path+".png")).convert('RGB'))
-                dis_img2 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP2",dis_path+".png")).convert('RGB'))
-                dis_img3 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP3",dis_path+".png")).convert('RGB'))
-                dis_img4 = np.asarray(Image.open(os.path.join(root_folder,"Distorted_Stimuli/VP4",dis_path+".png")).convert('RGB'))
-                images = [{"path":dis_path, "ref_img": ref_img, "distorted_img1": dis_img1, "distorted_img2": dis_img2, "distorted_img3": dis_img3, "distorted_img4": dis_img4}]
-                #print((patches, patches_id),outputs)
-                plot_patches(opt.output_dir, 0, ([patches], [patches_id]), outputs, f"test_", stimulus=images, have_weight=opt.weight_patch, multiview=opt.multiview)
+                patches = get_img_patches_from_data(im1, p0_paths, 1, nbPatches)
+                images = get_full_images(p0_paths, 1, nbPatches)
+                outputs = [score],[weight], [MOSpredicted], [torch.FloatTensor([MOS])]
+                plot_patches(opt.output_dir, 0, patches, outputs, f"test_", stimulus=images, have_weight=opt.weight_patch, multiview=opt.multiview)
 
             f.writelines('%s, %s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(model,dist,MOSpredicted,MOS,var_score,var_weight,mean_score,mean_weight,entropy_score,entropy_weight, spearm, pears))
             line_count +=1
