@@ -61,122 +61,123 @@ def do_all_patches_prediction(row, multiview, do_plots=False,output_dir=None,wei
 
     return score, weight, MOSpredicted
 
-parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('-f','--csvfile', type=str, default='../../data/dataset/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv')
-parser.add_argument('-m','--model_path', type=str, default='./lpips/weights/v0.1/alex.pth', help='location of model')
-parser.add_argument('-o','--output_dir', type=str, default='./GraphicsLPIPS_TestsetScores.csv')
-parser.add_argument('-v','--version', type=str, default='0.1')
-parser.add_argument('--use_gpu', action='store_true', help='turn on flag to use GPU')
 
-parser.add_argument('--net', type=str, default='alex', help='[squeeze], [alex], or [vgg] for network architectures')
-parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
-parser.add_argument('--fc_on_diff', action='store_true', help='put a few fc layer on top of diff instead of normalizing/averaging')
-parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
-parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top of FC for scores (force to be in [0,1])')
-parser.add_argument('--weight_multiscale', action='store_true', help='gives all the features to weight branch. If False, gives only last feature map')
-parser.add_argument('--multiview', action='store_true', help='use patches from different views')
-parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
-parser.add_argument('--do_plots', action='store_true', help='plot the maps')
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-f','--csvfile', type=str, default='../../data/dataset/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv')
+    parser.add_argument('-m','--model_path', type=str, default='./lpips/weights/v0.1/alex.pth', help='location of model')
+    parser.add_argument('-o','--output_dir', type=str, default='./GraphicsLPIPS_TestsetScores.csv')
+    parser.add_argument('-v','--version', type=str, default='0.1')
+    parser.add_argument('--use_gpu', action='store_true', help='turn on flag to use GPU')
 
-parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
+    parser.add_argument('--net', type=str, default='alex', help='[squeeze], [alex], or [vgg] for network architectures')
+    parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
+    parser.add_argument('--fc_on_diff', action='store_true', help='put a few fc layer on top of diff instead of normalizing/averaging')
+    parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
+    parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top of FC for scores (force to be in [0,1])')
+    parser.add_argument('--weight_multiscale', action='store_true', help='gives all the features to weight branch. If False, gives only last feature map')
+    parser.add_argument('--multiview', action='store_true', help='use patches from different views')
+    parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
+    parser.add_argument('--do_plots', action='store_true', help='plot the maps')
 
-
-opt = parser.parse_args()
-
-
-dirroots = os.path.dirname(opt.csvfile)+'/'
-root_refPatches = dirroots+'References_patches_withVP_threth0.6'
-root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
-
-## Initializing the model
-
-loss_fn = lpips.LPIPS(pretrained=True, net=opt.net,
-                use_dropout=True, model_path=opt.model_path, eval_mode=True,
-                fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch, weight_output=opt.weight_output, 
-                dropout_rate=0.0, tanh_score=opt.tanh_score, weight_multiscale=opt.weight_multiscale)
-if(opt.use_gpu):
-	loss_fn.cuda()
-
-os.makedirs(opt.output_dir,exist_ok=True)
-
-## Output file
-f = open(opt.output_dir+"/GraphicsLPIPS_TestsetScores.csv",'w')
-f.writelines('model,p0,lpips_alex,MOS,std_score,std_weight,mean_score,mean_weight,entropy_score,entropy_weight, spearm corr, pears corr\n')
-
-## read Input csv file 
-List_MOS = []
-List_GraphicsLPIPS= []
-List_measures = []
-
-transform_list = []
-transform_list.append(transforms.Resize(64))
-transform_list += [transforms.ToTensor(),
-    transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
-transform = transforms.Compose(transform_list)
-
-with open(opt.csvfile) as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=',')
-    line_count = 0
-    for row in tqdm.tqdm(csv_reader, total=604):
-        if line_count == 0:
-            #print(f'Column names are {", ".join(row)}')
-            line_count += 1
-        else:
-            dist = row[1]
-            model = row[0]
-            MOS = float(row[2])
-            score,weight, MOSpredicted = do_all_patches_prediction(row,opt.multiview, opt.do_plots, opt.output_dir, opt.weight_patch)
-
-            List_GraphicsLPIPS.append(MOSpredicted.item())
-            List_MOS.append((MOS))
-
-            res_score_np = [score.item() for score in score]
-            res_weight_np = [weight.item() for weight in weight]
-            # compute the correlation between scores and weights
-            spearm = stats.spearmanr(res_score_np,res_weight_np)[0]
-            pears = stats.pearsonr(res_score_np,res_weight_np)[0]
-            # compute uniformity: variance and Shannon entropy
-            var_score = stats.tstd(res_score_np)
-            mean_score = stats.tmean(res_score_np)
-            entropy_score = stats.entropy(ndimage.histogram(res_score_np,-1,2,30))
-            #print(ndimage.histogram(res_score_np,-1,2,30), entropy_score, var_score)
-            var_weight = stats.tstd(res_weight_np)
-            mean_weight = stats.tmean(res_weight_np)
-            entropy_weight = stats.entropy(ndimage.histogram(res_weight_np,0,max(res_weight_np),50))
-            #print(ndimage.histogram(res_weight_np,0,max(res_weight_np),50), entropy_weight, var_weight)
-            #List_measures.append({"var_score":var_score,"var_weight":var_weight,"entropy_score":entropy_score,"entropy_weight":entropy_weight})
-
-        
-
-            f.writelines('%s, %s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(model,dist,MOSpredicted,MOS,var_score,var_weight,mean_score,mean_weight,entropy_score,entropy_weight, spearm, pears))
-            line_count +=1
-f.close()
-
-f = open(opt.output_dir+"/GraphicsLPIPS_global.csv",'w')
-
-List_GraphicsLPIPS = np.array(List_GraphicsLPIPS)
-List_MOS = np.array(List_MOS)
-
-f.writelines('l1, %.3f\n'%np.mean(np.abs(List_GraphicsLPIPS-List_MOS)))
-f.writelines('l2, %.3f\n'%np.mean((List_GraphicsLPIPS-List_MOS)**2))
-f.writelines('srocc, %.3f\n'%stats.spearmanr(List_GraphicsLPIPS, List_MOS)[0])
+    parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
 
 
-# Instantiate a binomial family model with the logit link function (the default link function).
-List_GraphicsLPIPS = sm.add_constant(List_GraphicsLPIPS)
-glm_binom = sm.GLM(List_MOS, List_GraphicsLPIPS, family = sm.families.Binomial())#, link = sm.families.links.Logit()
-res_regModel = glm_binom.fit()
-
-fitted_GraphicsLpips = res_regModel.predict()
-corrPears =  stats.pearsonr(fitted_GraphicsLpips, List_MOS)[0]
-corrSpear =  stats.spearmanr(fitted_GraphicsLpips, List_MOS)[0]
-
-f.writelines('pearson fit, %.3f\n'%corrPears)
-f.writelines('spearman fit, %.3f\n'%corrSpear)
+    opt = parser.parse_args()
 
 
+    dirroots = os.path.dirname(opt.csvfile)+'/'
+    root_refPatches = dirroots+'References_patches_withVP_threth0.6'
+    root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
+
+    ## Initializing the model
+
+    loss_fn = lpips.LPIPS(pretrained=True, net=opt.net,
+                    use_dropout=True, model_path=opt.model_path, eval_mode=True,
+                    fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch, weight_output=opt.weight_output, 
+                    dropout_rate=0.0, tanh_score=opt.tanh_score, weight_multiscale=opt.weight_multiscale)
+    if(opt.use_gpu):
+        loss_fn.cuda()
+
+    os.makedirs(opt.output_dir,exist_ok=True)
+
+    ## Output file
+    f = open(opt.output_dir+"/GraphicsLPIPS_TestsetScores.csv",'w')
+    f.writelines('model,p0,lpips_alex,MOS,std_score,std_weight,mean_score,mean_weight,entropy_score,entropy_weight, spearm corr, pears corr\n')
+
+    ## read Input csv file 
+    List_MOS = []
+    List_GraphicsLPIPS= []
+    List_measures = []
+
+    transform_list = []
+    transform_list.append(transforms.Resize(64))
+    transform_list += [transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
+    transform = transforms.Compose(transform_list)
+
+    with open(opt.csvfile) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        line_count = 0
+        for row in tqdm.tqdm(csv_reader, total=604):
+            if line_count == 0:
+                #print(f'Column names are {", ".join(row)}')
+                line_count += 1
+            else:
+                dist = row[1]
+                model = row[0]
+                MOS = float(row[2])
+                score,weight, MOSpredicted = do_all_patches_prediction(row,opt.multiview, opt.do_plots, opt.output_dir, opt.weight_patch)
+
+                List_GraphicsLPIPS.append(MOSpredicted.item())
+                List_MOS.append((MOS))
+
+                res_score_np = [score.item() for score in score]
+                res_weight_np = [weight.item() for weight in weight]
+                # compute the correlation between scores and weights
+                spearm = stats.spearmanr(res_score_np,res_weight_np)[0]
+                pears = stats.pearsonr(res_score_np,res_weight_np)[0]
+                # compute uniformity: variance and Shannon entropy
+                var_score = stats.tstd(res_score_np)
+                mean_score = stats.tmean(res_score_np)
+                entropy_score = stats.entropy(ndimage.histogram(res_score_np,-1,2,30))
+                #print(ndimage.histogram(res_score_np,-1,2,30), entropy_score, var_score)
+                var_weight = stats.tstd(res_weight_np)
+                mean_weight = stats.tmean(res_weight_np)
+                entropy_weight = stats.entropy(ndimage.histogram(res_weight_np,0,max(res_weight_np),50))
+                #print(ndimage.histogram(res_weight_np,0,max(res_weight_np),50), entropy_weight, var_weight)
+                #List_measures.append({"var_score":var_score,"var_weight":var_weight,"entropy_score":entropy_score,"entropy_weight":entropy_weight})
+
+            
+                f.writelines('%s, %s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(model,dist,MOSpredicted,MOS,var_score,var_weight,mean_score,mean_weight,entropy_score,entropy_weight, spearm, pears))
+                line_count +=1
+    f.close()
+
+    f = open(opt.output_dir+"/GraphicsLPIPS_global.csv",'w')
+
+    List_GraphicsLPIPS = np.array(List_GraphicsLPIPS)
+    List_MOS = np.array(List_MOS)
+
+    f.writelines('l1, %.3f\n'%np.mean(np.abs(List_GraphicsLPIPS-List_MOS)))
+    f.writelines('l2, %.3f\n'%np.mean((List_GraphicsLPIPS-List_MOS)**2))
+    f.writelines('srocc, %.3f\n'%stats.spearmanr(List_GraphicsLPIPS, List_MOS)[0])
 
 
-f.close()
+    # Instantiate a binomial family model with the logit link function (the default link function).
+    List_GraphicsLPIPS = sm.add_constant(List_GraphicsLPIPS)
+    glm_binom = sm.GLM(List_MOS, List_GraphicsLPIPS, family = sm.families.Binomial())#, link = sm.families.links.Logit()
+    res_regModel = glm_binom.fit()
+
+    fitted_GraphicsLpips = res_regModel.predict()
+    corrPears =  stats.pearsonr(fitted_GraphicsLpips, List_MOS)[0]
+    corrSpear =  stats.spearmanr(fitted_GraphicsLpips, List_MOS)[0]
+
+    f.writelines('pearson fit, %.3f\n'%corrPears)
+    f.writelines('spearman fit, %.3f\n'%corrSpear)
+
+
+
+
+    f.close()
 
 
