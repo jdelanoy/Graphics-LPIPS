@@ -19,6 +19,48 @@ import torchvision.transforms as transforms
 from lpips.trainer import get_img_patches_from_data, get_full_images
 
 
+def do_all_patches_prediction(row, multiview, do_plots=False,output_dir=None,weight_patch=False):
+    dist = row[1]
+    model = row[0]
+    MOS = float(row[2])
+    nbPatches = int(row[3]) if not multiview else int(row[3]) + int(row[4]) + int(row[5]) + int(row[6])
+
+    im0_patches, im1_patches = [], []
+    p0_paths = []
+
+    with torch.no_grad(): 
+        for p in range(1, nbPatches +1):
+            refpatch = model + '_Ref_P' + str(p) + '.png'
+            refpath = os.path.join(root_refPatches, refpatch)
+            stimuluspatch = dist + '_P' + str(p) + '.png'
+            stimuluspath = os.path.join(root_distPatches, stimuluspatch)
+                
+            img0 = transform(Image.open(refpath).convert('RGB'))[None]
+            img1 = transform(Image.open(stimuluspath).convert('RGB'))[None]
+
+            if(opt.use_gpu):
+                img0 = img0.cuda()
+                img1 = img1.cuda()
+
+            im0_patches.append(img0)
+            im1_patches.append(img1)
+
+            p0_paths.append(stimuluspath)
+
+        im0 = torch.cat(im0_patches,0)
+        im1 = torch.cat(im1_patches,0)
+        score, weight = loss_fn.forward(im0,im1)
+
+        MOSpredicted = torch.sum(torch.mul(weight,score), 0, True)/torch.sum(weight,0,True)
+                
+    if do_plots:
+        patches = get_img_patches_from_data(im1, p0_paths, 1, nbPatches)
+        images = get_full_images(p0_paths, 1, nbPatches)
+        outputs = [score],[weight], [MOSpredicted], [torch.FloatTensor([MOS])]
+        plot_patches(output_dir, 0, patches, outputs, f"test_", stimulus=images, have_weight=weight_patch, multiview=multiview)
+
+    return score, weight, MOSpredicted
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('-f','--csvfile', type=str, default='../../data/dataset/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv')
 parser.add_argument('-m','--model_path', type=str, default='./lpips/weights/v0.1/alex.pth', help='location of model')
@@ -80,41 +122,13 @@ with open(opt.csvfile) as csv_file:
             #print(f'Column names are {", ".join(row)}')
             line_count += 1
         else:
-            with torch.no_grad(): 
-                dist = row[1]
-                model = row[0]
-                MOS = float(row[2])
-                nbPatches = int(row[3]) if not opt.multiview else int(row[3]) + int(row[4]) + int(row[5]) + int(row[6])
-                
-                #res_score = []
-                #res_weight = []
-                #resString =''
-                #patches_id, patches = [], []
-                im0_patches, im1_patches = [], []
-                p0_paths, stimuliId, judges = [], [], []
-                for p in range(1, nbPatches +1):
-                    refpatch = model + '_Ref_P' + str(p) + '.png'
-                    refpath = os.path.join(root_refPatches, refpatch)
-                    stimuluspatch = dist + '_P' + str(p) + '.png'
-                    stimuluspath = os.path.join(root_distPatches, stimuluspatch)
-                        
+            dist = row[1]
+            model = row[0]
+            MOS = float(row[2])
+            score,weight, MOSpredicted = do_all_patches_prediction(row,opt.multiview, opt.do_plots, opt.output_dir, opt.weight_patch)
 
-                    img0 = transform(Image.open(refpath).convert('RGB'))[None]
-                    img1 = transform(Image.open(stimuluspath).convert('RGB'))[None]
-
-                    if(opt.use_gpu):
-                        img0 = img0.cuda()
-                        img1 = img1.cuda()
-
-                    im0_patches.append(img0)
-                    im1_patches.append(img1)
-
-                    p0_paths.append(stimuluspath)
-
-
-            im0 = torch.cat(im0_patches,0)
-            im1 = torch.cat(im1_patches,0)
-            score, weight = loss_fn.forward(im0,im1)
+            List_GraphicsLPIPS.append(MOSpredicted.item())
+            List_MOS.append((MOS))
 
             res_score_np = [score.item() for score in score]
             res_weight_np = [weight.item() for weight in weight]
@@ -132,16 +146,7 @@ with open(opt.csvfile) as csv_file:
             #print(ndimage.histogram(res_weight_np,0,max(res_weight_np),50), entropy_weight, var_weight)
             #List_measures.append({"var_score":var_score,"var_weight":var_weight,"entropy_score":entropy_score,"entropy_weight":entropy_weight})
 
-            MOSpredicted = torch.sum(torch.mul(weight,score), 0, True)/torch.sum(weight,0,True)
-            
-            List_GraphicsLPIPS.append(MOSpredicted.item())
-            List_MOS.append((MOS))
-
-            if opt.do_plots:
-                patches = get_img_patches_from_data(im1, p0_paths, 1, nbPatches)
-                images = get_full_images(p0_paths, 1, nbPatches)
-                outputs = [score],[weight], [MOSpredicted], [torch.FloatTensor([MOS])]
-                plot_patches(opt.output_dir, 0, patches, outputs, f"test_", stimulus=images, have_weight=opt.weight_patch, multiview=opt.multiview)
+        
 
             f.writelines('%s, %s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(model,dist,MOSpredicted,MOS,var_score,var_weight,mean_score,mean_weight,entropy_score,entropy_weight, spearm, pears))
             line_count +=1

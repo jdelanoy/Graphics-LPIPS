@@ -18,6 +18,7 @@ import tqdm
 from util.visualizer import plot_patches
 import torchvision.transforms as transforms
 from matplotlib import pyplot as plt
+from lpips_csvFile_TexturedDB import do_all_patches_prediction
 
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -90,49 +91,11 @@ for model_path in (opt.model_path):
                     dist = row[1]
                     model = row[0]
                     MOS = float(row[2])
-                    nbPatches = int(row[3]) if not opt.multiview else int(row[3]) + int(row[4]) + int(row[5]) + int(row[6])
-                    
-                    res_score = []
-                    res_weight = []
-                    resString =''
-                    patches_id, patches = [], []
-                    for p in range(1, nbPatches +1):
-                        refpatch = model + '_Ref_P' + str(p) + '.png'
-                        refpath = os.path.join(root_refPatches, refpatch)
-                        stimuluspatch = dist + '_P' + str(p) + '.png'
-                        stimuluspath = os.path.join(root_distPatches, stimuluspatch)
-                            
 
-                        img0 = transform(Image.open(refpath).convert('RGB'))
-                        img1 = transform(Image.open(stimuluspath).convert('RGB'))
-                        img0 = img0[None]
-                        img1 = img1[None]
-                        #print(img0.shape)
-                        #img0 = lpips.im2tensor(lpips.load_image(refpath)) # RGB image from [-1,1]
-                        #img1 = lpips.im2tensor(lpips.load_image(stimuluspath))
-                        #print(img0.shape)
-                        
-                        if(opt.use_gpu):
-                            img0 = img0.cuda()
-                            img1 = img1.cuda()
-                        
-                        score, weight = loss_fn.forward(img0,img1)
-                        res_score.append(score)
-                        res_weight.append(weight)
+                    score, weight, MOSpredicted = do_all_patches_prediction(row,opt.multiview, opt.do_plots, opt.output_dir, opt.weight_patch)
 
-                        #store the patches and everything to launch plot
-                        patches.append(lpips.tensor2im(img1.data))
-                        patches_id.append(p)
-        
-
-                MOSpredicted = sum([score*weight for score,weight in zip(res_score,res_weight)])/sum(res_weight)
-                #print(MOSpredicted)
-                #MOSpredicted = torch.sum(torch.mul(res_weight,res_score), 1, True)/torch.sum(res_weight,1,True)
-
-
-                List_GraphicsLPIPS.append(MOSpredicted.item())
-                List_MOS.append((MOS))
-
+                    List_GraphicsLPIPS.append(MOSpredicted.item())
+                    List_MOS.append((MOS))
 
                 line_count +=1
                 #if line_count > 3: break
@@ -158,28 +121,24 @@ for model_path in (opt.model_path):
 
 output_path=opt.output_dir
 
-
-
-
-# import argparse
-# from glob import glob
 # import os
 
 # #from matplotlib import patches
 
-# import torchvision.transforms as transforms
 # from matplotlib import pyplot as plt
 # import numpy as np
 
-# output_path="checkpoints/YanaParam_40epoch_nodecay_4images_100patches/test_full"
+# types = ["baseParam_patch_weight_withrelu_fc_on_diff_dropout%s","YanaParam_40epoch_nodecay%s_100patches"]
+# versions = ["_32images","_8images","_4images"]
 
-# x=np.load(os.path.join(output_path,"loss_x.npy"))
-# losses=np.load(os.path.join(output_path,"loss_y.npy"))
-# l2s=np.load(os.path.join(output_path,"MSE_y.npy"))
-# srocc=np.load(os.path.join(output_path,"SROCC_y.npy"))
-
-
-
+# for (it,type) in enumerate(types):
+#     for (iv,v) in enumerate(versions):
+#         folder = type%v
+#         output_path="checkpoints/"+folder+"/test_full"
+#         x=np.load(os.path.join(output_path,"loss_x.npy"))
+#         losses=np.load(os.path.join(output_path,"loss_y.npy"))
+#         l2s=np.load(os.path.join(output_path,"MSE_y.npy"))
+#         srocc=np.load(os.path.join(output_path,"SROCC_y.npy"))
 
 sorting=np.argsort(x)
 x = x[sorting]
@@ -194,7 +153,7 @@ def save_values(x,y,name,output_path):
     plt.savefig(os.path.join(output_path,name+".png"))
     plt.clf()
 
-output_path=opt.output_dir
+#output_path=opt.output_dir
 os.makedirs(output_path,exist_ok=True)
 save_values(x,losses,"loss",output_path)
 save_values(x,l2s,"MSE",output_path)
