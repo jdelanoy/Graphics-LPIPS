@@ -20,6 +20,12 @@ from lpips.trainer import get_img_patches_from_data, get_full_images
 
 
 def do_all_patches_prediction(path, row, multiview, do_plots=False,output_dir=None,weight_patch=False):
+    transform_list = []
+    transform_list.append(transforms.Resize(64))
+    transform_list += [transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
+    transform = transforms.Compose(transform_list)
+
     dirroots = os.path.dirname(path)+'/'
     root_refPatches = dirroots+'References_patches_withVP_threth0.6'
     root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
@@ -109,11 +115,6 @@ if __name__ == '__main__':
     List_GraphicsLPIPS= []
     List_measures = []
 
-    transform_list = []
-    transform_list.append(transforms.Resize(64))
-    transform_list += [transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
-    transform = transforms.Compose(transform_list)
 
     with open(opt.csvfile) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')

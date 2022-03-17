@@ -69,11 +69,6 @@ for model_path in (opt.model_path):
     List_MOS = []
     List_GraphicsLPIPS= []
 
-    transform_list = []
-    transform_list.append(transforms.Resize(64))
-    transform_list += [transforms.ToTensor(),
-        transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
-    transform = transforms.Compose(transform_list)
 
     with open(opt.csvfile) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
