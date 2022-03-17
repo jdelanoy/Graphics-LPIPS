@@ -44,10 +44,6 @@ parser.add_argument('--nThreads', type=int, default=4, help='number of threads t
 opt = parser.parse_args()
 
 
-dirroots = os.path.dirname(opt.csvfile)+'/'
-root_refPatches = dirroots+'References_patches_withVP_threth0.6'
-root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
-
 losses=[]
 l2s = []
 srocc = []
@@ -92,7 +88,7 @@ for model_path in (opt.model_path):
                     model = row[0]
                     MOS = float(row[2])
 
-                    score, weight, MOSpredicted = do_all_patches_prediction(row,opt.multiview, opt.do_plots, opt.output_dir, opt.weight_patch)
+                    score, weight, MOSpredicted = do_all_patches_prediction(opt.csvfile,row,opt.multiview)
 
                     List_GraphicsLPIPS.append(MOSpredicted.item())
                     List_MOS.append((MOS))

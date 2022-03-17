@@ -19,7 +19,11 @@ import torchvision.transforms as transforms
 from lpips.trainer import get_img_patches_from_data, get_full_images
 
 
-def do_all_patches_prediction(row, multiview, do_plots=False,output_dir=None,weight_patch=False):
+def do_all_patches_prediction(path, row, multiview, do_plots=False,output_dir=None,weight_patch=False):
+    dirroots = os.path.dirname(path)+'/'
+    root_refPatches = dirroots+'References_patches_withVP_threth0.6'
+    root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
+
     dist = row[1]
     model = row[0]
     MOS = float(row[2])
@@ -85,11 +89,6 @@ if __name__ == '__main__':
 
     opt = parser.parse_args()
 
-
-    dirroots = os.path.dirname(opt.csvfile)+'/'
-    root_refPatches = dirroots+'References_patches_withVP_threth0.6'
-    root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
-
     ## Initializing the model
 
     loss_fn = lpips.LPIPS(pretrained=True, net=opt.net,
@@ -127,7 +126,7 @@ if __name__ == '__main__':
                 dist = row[1]
                 model = row[0]
                 MOS = float(row[2])
-                score,weight, MOSpredicted = do_all_patches_prediction(row,opt.multiview, opt.do_plots, opt.output_dir, opt.weight_patch)
+                score,weight, MOSpredicted = do_all_patches_prediction(opt.csvfile, row,opt.multiview, opt.do_plots, opt.output_dir, opt.weight_patch)
 
                 List_GraphicsLPIPS.append(MOSpredicted.item())
                 List_MOS.append((MOS))
