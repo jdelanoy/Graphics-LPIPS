@@ -83,7 +83,7 @@ for model_path in (opt.model_path):
                     model = row[0]
                     MOS = float(row[2])
 
-                    score, weight, MOSpredicted = do_all_patches_prediction(opt.csvfile,row,opt.multiview, opt.use_gpu)
+                    score, weight, MOSpredicted = do_all_patches_prediction(loss_fn, opt.csvfile,row,opt.multiview, opt.use_gpu)
 
                     List_GraphicsLPIPS.append(MOSpredicted.item())
                     List_MOS.append((MOS))
