@@ -3,21 +3,22 @@ from data.base_data_loader import BaseDataLoader
 import os
 import random
 import numpy as np
+from data.dataset.twoafc_dataset import TwoAFCDataset
 
-def CreateDataset(dataroots,dataset_mode='2afc',load_size=64, shuffle=False , Nbpatches = 205, multiview=False):
-    dataset = None
-    # Our dataset is baaset on the DSIS protocol (not 2afc). I adapted the code to suit DSIS. However, I did not change the function name.
-    if dataset_mode=='2afc': # human judgements
-        from data.dataset.twoafc_dataset import TwoAFCDataset
-        dataset = TwoAFCDataset()
-    elif dataset_mode=='jnd': # human judgements
-        from data.dataset.jnd_dataset import JNDDataset
-        dataset = JNDDataset()
-    else:
-        raise ValueError("Dataset Mode [%s] not recognized."%dataset_mode)
+# def CreateDataset(dataroots,dataset_mode='2afc',load_size=64, shuffle=False , Nbpatches = 205, multiview=False, data_augmentation=False):
+#     dataset = None
+#     # Our dataset is baaset on the DSIS protocol (not 2afc). I adapted the code to suit DSIS. However, I did not change the function name.
+#     if dataset_mode=='2afc': # human judgements
+#         from data.dataset.twoafc_dataset import TwoAFCDataset
+#         dataset = TwoAFCDataset()
+#     elif dataset_mode=='jnd': # human judgements
+#         from data.dataset.jnd_dataset import JNDDataset
+#         dataset = JNDDataset()
+#     else:
+#         raise ValueError("Dataset Mode [%s] not recognized."%dataset_mode)
 
-    dataset.initialize(dataroots,load_size=load_size,shuffle = shuffle, maxNbPatches = Nbpatches, multiview=multiview)
-    return dataset
+#     dataset.initialize(dataroots,load_size=load_size,shuffle = shuffle, maxNbPatches = Nbpatches, multiview=multiview, data_augmentation)
+#     return dataset
 
 
 def seed_worker(worker_id):
@@ -29,7 +30,7 @@ class CustomDatasetDataLoader(BaseDataLoader):
     def name(self):
         return 'CustomDatasetDataLoader'
 
-    def initialize(self, data_csvfile, shuffle=False, Nbpatches=205, dataset_mode='2afc',load_size=64,batch_size=1,serial_batches=True, nThreads=1, multiview=False):
+    def initialize(self, data_csvfile, shuffle=False, Nbpatches=205, dataset_mode='2afc',load_size=64,batch_size=1,serial_batches=True, nThreads=1, multiview=False, data_augmentation=False):
         BaseDataLoader.initialize(self)
         if(not isinstance(data_csvfile,list)):
             data_csvfile = [data_csvfile,]
@@ -38,7 +39,10 @@ class CustomDatasetDataLoader(BaseDataLoader):
         g = torch.Generator()
         g.manual_seed(0)
 
-        self.dataset = CreateDataset(data_csvfile,dataset_mode=dataset_mode,load_size=load_size, shuffle=shuffle, Nbpatches=Nbpatches, multiview=multiview)
+        self.dataset = TwoAFCDataset()
+        self.dataset.initialize(data_csvfile,load_size=load_size,shuffle = shuffle, maxNbPatches = Nbpatches, multiview=multiview, data_augmentation=data_augmentation)
+
+        #self.dataset = CreateDataset(data_csvfile,dataset_mode=dataset_mode,load_size=load_size, shuffle=shuffle, Nbpatches=Nbpatches, multiview=multiview)
         self.dataloader = torch.utils.data.DataLoader(
             self.dataset,
             batch_size=batch_size,

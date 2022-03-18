@@ -41,6 +41,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.0001, help='# initial learning rate')
     parser.add_argument('--from_scratch', action='store_true', help='model was initialized from scratch')
     parser.add_argument('--train_trunk', action='store_true', help='model trunk was trained/tuned')
+    parser.add_argument('--data_augmentation', action='store_true', help='use data augmentation on training data')
     # display/output options
     parser.add_argument('--testset_freq', type=int, default=5, help='frequency of evaluating the testset')
     parser.add_argument('--display_freq', type=int, default=0, help='frequency (in instances) of showing training results on screen')
@@ -82,10 +83,10 @@ if __name__ == '__main__':
     # load data from all test sets 
     # The random patches for the test set are only sampled once at the beginning of training in order to avoid noise in the validation loss.
     Testset = os.path.dirname(opt.datasets[0])+'/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv'
-    data_loader_testSet = dl.CreateDataLoader(Testset,dataset_mode='2afc', Nbpatches= opt.npatches, 
+    data_loader_testSet = dl.CreateDataLoader(Testset,dataset_mode='2afc', Nbpatches= opt.npatches, data_augmentation=False,
                                               load_size = load_size, batch_size=opt.batch_size, nThreads=opt.nThreads, multiview=opt.multiview)
     tester = lpips.Tester(trainer,data_loader_testSet)
-
+    #tester.write_patches()
     
 
     total_steps = 0
@@ -98,7 +99,7 @@ if __name__ == '__main__':
     for epoch in range(1, opt.nepoch + opt.nepoch_decay + 1):
         # Load training data to sample random patches every epoch
         data_start_time = time.time()
-        data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', shuffle=True, Nbpatches=opt.npatches, 
+        data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', shuffle=True, Nbpatches=opt.npatches, data_augmentation=opt.data_augmentation,
                                             load_size = load_size, batch_size=opt.batch_size, serial_batches=True, nThreads=opt.nThreads, multiview=opt.multiview)
         print(f"Time to load data: {time.time()-data_start_time}")
 

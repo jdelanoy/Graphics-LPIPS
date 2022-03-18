@@ -9,9 +9,11 @@ import csv
 import random
 import collections
 # from IPython import embed
+import util.transforms2 as T
+import cv2
 
 class TwoAFCDataset(BaseDataset):
-    def initialize(self, dataroots, load_size=64, shuffle = False, maxNbPatches = 205, multiview=False):
+    def initialize(self, dataroots, load_size=64, shuffle = False, maxNbPatches = 205, multiview=False, data_augmentation=False):
         if(not isinstance(dataroots,list)):
             dataroots = [dataroots,]
         dirroots = os.path.dirname(dataroots[0])+'/'
@@ -113,13 +115,27 @@ class TwoAFCDataset(BaseDataset):
         # occurence_stimuliId = collections.Counter(self.stimuliId)
         # print(occurence_stimuliId)
 
-
         transform_list = []
-        transform_list.append(transforms.Resize(load_size))
-        transform_list += [transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
+        transform_list.append(T.Resize(load_size))
+        transform_list += [T.ToTensor(),
+            T.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
 
-        self.transform = transforms.Compose(transform_list)
+        self.transform = T.Compose(transform_list)
+
+        if data_augmentation:
+            self.transform = T.Compose([
+                T.RandomHorizontalFlip(0.5), 
+                T.RandomVerticalFlip(0.5),
+                T.Random180DegRot(0.5),
+                T.Random90DegRotClockWise(0.5),
+                T.Albumentations(50,50,0.5), # change in color
+                T.RandomResize(low=load_size, high=int(load_size*1.2)),
+                T.RandomCrop(size=load_size),
+                #T.RandomRotation(degrees=(-5, 5)), 
+                self.transform
+            ])
+
+        
     
     # # default initialize function of LPIPS
     # def initialize2(self, dataroots, load_size=64):
@@ -151,13 +167,11 @@ class TwoAFCDataset(BaseDataset):
 
     def __getitem__(self, index):
         p0_path = self.p0_paths[index]
-        p0_img_ = Image.open(p0_path).convert('RGB')
-        p0_img = self.transform(p0_img_)
-
+        p0_img_ = cv2.cvtColor(cv2.imread(p0_path, 1), cv2.COLOR_BGR2RGB)#Image.open(p0_path).convert('RGB')
 
         ref_path = self.ref_paths[index]
-        ref_img_ = Image.open(ref_path).convert('RGB')
-        ref_img = self.transform(ref_img_)
+        ref_img_ = cv2.cvtColor(cv2.imread(ref_path, 1), cv2.COLOR_BGR2RGB)# Image.open(ref_path).convert('RGB')
+        p0_img, ref_img = self.transform(p0_img_,ref_img_)
 
         #judge_path = self.judge_paths[index]
         #judge_img = np.load(judge_path).reshape((1,1,1,)) # [0,1]
