@@ -110,7 +110,6 @@ def plot_patches(path, epoch, patches, position, name='', stimulus=None, have_we
             map_weight, map_score = compute_maps(patches_id[im],score[im], weigth[im], stimulus[im], v+1)
             maps_weight.append(map_weight), maps_score.append(map_score)
         max_weight = max([np.nanmax(map) for map in maps_weight])
-        print(max_weight)
         for v in range(nviews):
             plt.subplot(nrows,2,7+(v*2))
             plt.imshow(maps_score[v], vmin=-0.25, vmax=1.25)

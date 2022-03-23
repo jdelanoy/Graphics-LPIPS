@@ -108,26 +108,35 @@ if __name__ == '__main__':
 
     ## Output file
     f = open(opt.output_dir+"/GraphicsLPIPS_TestsetScores.csv",'w')
-    f.writelines('model,p0,lpips_alex,MOS,std_score,std_weight,mean_score,mean_weight,entropy_score,entropy_weight, spearm corr, pears corr\n')
+    f.writelines('model,p0,simp,qp,qt,size,jpeg,lpips_alex,MOS,std_score,std_weight,mean_score,mean_weight,entropy_score,entropy_weight, spearm corr, pears corr\n')
 
     ## read Input csv file 
     List_MOS = []
     List_GraphicsLPIPS= []
     List_measures = []
 
-
     with open(opt.csvfile) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
         for row in tqdm.tqdm(csv_reader, total=604):
             if line_count == 0:
-                #print(f'Column names are {", ".join(row)}')
                 line_count += 1
             else:
                 dist = row[1]
                 model = row[0]
                 MOS = float(row[2])
                 score,weight, MOSpredicted = do_all_patches_prediction(loss_fn, opt.csvfile, row,opt.multiview, opt.use_gpu, opt.do_plots, opt.output_dir, opt.weight_patch)
+
+                #extract all the distorsions
+                list_dist = dist.rsplit("_",6)[1:]
+                #print(dist,list_dist)
+                simp = int(list_dist[0][5:])
+                qp = int(list_dist[1][2:])
+                qt = int(list_dist[2][2:])
+                size = int(list_dist[4].split("x")[1])
+                jpeg = int(list_dist[5][1:])
+
+                # 170516_mia337_032122_600_200Kfaces_8192px_OBJ_simpL1_qp9_qt7_decompJPEG_1440x1440_Q10 
 
                 List_GraphicsLPIPS.append(MOSpredicted.item())
                 List_MOS.append((MOS))
@@ -148,9 +157,9 @@ if __name__ == '__main__':
                 #print(ndimage.histogram(res_weight_np,0,max(res_weight_np),50), entropy_weight, var_weight)
                 #List_measures.append({"var_score":var_score,"var_weight":var_weight,"entropy_score":entropy_score,"entropy_weight":entropy_weight})
 
-            
-                f.writelines('%s, %s, %.6f, %s, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f\n'%(model,dist,MOSpredicted,MOS,var_score,var_weight,mean_score,mean_weight,entropy_score,entropy_weight, spearm, pears))
+                f.writelines(f'{model},{dist},{simp},{qp},{qt},{size},{jpeg},{MOSpredicted.item()},{MOS},{var_score},{var_weight},{mean_score},{mean_weight},{entropy_score},{entropy_weight}, {spearm}, {pears}\n')
                 line_count +=1
+                #if line_count > 10: break
     f.close()
 
     f = open(opt.output_dir+"/GraphicsLPIPS_global.csv",'w')
