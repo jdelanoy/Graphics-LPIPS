@@ -95,6 +95,7 @@ if __name__ == '__main__':
     if os.stat(os.path.join(opt.checkpoints_dir,opt.name,'tuning_hyperparam.csv')).st_size == 0:
         f_hyperParam.write("nepoch,nepoch_decay,npatches,nInputImg,lr,epoch,TrainLoss,testLoss,SROCC_testset\n")
     
+    best_loss = 1e+5
     start_time = time.time()
     for epoch in range(1, opt.nepoch + opt.nepoch_decay + 1):
         # Load training data to sample random patches every epoch
@@ -159,6 +160,9 @@ if __name__ == '__main__':
             res_testset = tester.run_test_set(name=Testset) # SROCC & loss
             for key in res_testset.keys():
                 test_visualizer.plot_current_errors_save(epoch, 1.0, opt, res_testset, keys=[key,], name=key, to_plot=opt.train_plot)
+            if res_testset['loss'] < best_loss:
+                best_loss = res_testset['loss']
+                trainer.save(opt.save_dir, 'best')
             # patches, outputs = tester.get_current_patches_outputs(2)
             # test_visualizer.plot_patches(epoch, patches, outputs, "patches")
             info += "," + str(res_testset['loss']) + "," + str(res_testset['SROCC'])
@@ -173,7 +177,7 @@ if __name__ == '__main__':
             trainer.update_learning_rate(opt.nepoch_decay, opt.decay_type)
         
 
-    trainer.save(opt.save_dir, epoch)
+    trainer.save(opt.save_dir, 'latest')
     # trainer.save_done(True)
     fid.close()
     f_hyperParam.close()
