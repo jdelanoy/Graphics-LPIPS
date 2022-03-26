@@ -128,10 +128,10 @@ class TwoAFCDataset(BaseDataset):
                 T.RandomVerticalFlip(0.5),
                 T.Random180DegRot(0.5),
                 T.Random90DegRotClockWise(0.5),
-                T.Albumentations(50,50,0.5), # change in color
-                T.RandomResize(low=load_size, high=int(load_size*1.2)),
-                T.RandomCrop(size=load_size),
-                #T.RandomRotation(degrees=(-5, 5)), 
+                #T.Albumentations(50,50,0.5), # change in color
+                #T.RandomResize(low=load_size, high=int(load_size*1.2)),
+                #T.RandomCrop(size=load_size),
+                ####T.RandomRotation(degrees=(-5, 5)), 
                 self.transform
             ])
 
