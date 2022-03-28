@@ -2,3 +2,5 @@ checkpoints/
 __pycache__/
 *.pyc
 R analysis
+patches
+*.png
