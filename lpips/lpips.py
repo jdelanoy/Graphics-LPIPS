@@ -226,6 +226,14 @@ class L1Loss(nn.Module):
     def forward(self, d0, judge):
         per = judge
         return self.loss(d0, per)
+class L2Loss(nn.Module):
+    def __init__(self, chn_mid=32):
+        super(L2Loss, self).__init__()
+        self.loss = torch.nn.MSELoss() #MAE better if we have patches (according to Bosse et al.) 
+
+    def forward(self, d0, judge):
+        per = judge
+        return self.loss(d0, per)
 
 # L2, DSSIM metrics
 class FakeNet(nn.Module):
