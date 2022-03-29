@@ -168,7 +168,7 @@ class TwoAFCDataset(BaseDataset):
     def __getitem__(self, index):
         p0_path = self.p0_paths[index]
         p0_img_ = (cv2.imread(p0_path, 1))#Image.open(p0_path).convert('RGB')
-        if p0_img_.empty() : print(p0_path)
+        if p0_img_ is None : print(p0_path)
         p0_img_ = cv2.cvtColor(p0_img_, cv2.COLOR_BGR2RGB)
 
         ref_path = self.ref_paths[index]
