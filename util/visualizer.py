@@ -229,14 +229,14 @@ class Visualizer():
                 for _ in range(len(keys) - (x.shape[0] % len(keys))):
                     x=np.append(x,x[-1])
                     y=np.append(y,y[-1])
-            self.plot_data['X'] = x
+            self.plot_data['X'] = x.tolist()
             #print(kname,x,y)
             if len(self.plot_data['Y']) == 0:
-                self.plot_data['Y'] = np.array([[0 for kk in keys] for xx in x])
+                self.plot_data['Y'] = np.array([[0 for kk in keys] for xx in x], dtype=np.float32)
                 #print(self.plot_data['Y'])
             #print(kk)
             self.plot_data['Y'][:,kk] = y
-        self.plot_data['Y'] = np.asarray(self.plot_data['Y'])
+        self.plot_data['Y'] = self.plot_data['Y'].tolist()
 
 
     # save errors into a directory

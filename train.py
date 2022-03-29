@@ -78,7 +78,8 @@ if __name__ == '__main__':
         pnet_rand=opt.from_scratch, pnet_tune=opt.train_trunk, gpu_ids=opt.gpu_ids, printNet=opt.print_net)
 
     load_size = 64 # default value is 64
-
+    start_epoch=1
+    
     train_visualizer = Visualizer(opt, "train")
     test_visualizer = Visualizer(opt, "test")
 
@@ -86,6 +87,7 @@ if __name__ == '__main__':
         trainer.load(opt.save_dir, opt.resume)
         test_visualizer.load_state()
         train_visualizer.load_state()
+        start_epoch = opt.resume
 
     # load data from all test sets 
     # The random patches for the test set are only sampled once at the beginning of training in order to avoid noise in the validation loss.
@@ -104,7 +106,7 @@ if __name__ == '__main__':
     
     best_loss = 1e+5
     start_time = time.time()
-    for epoch in range(1, opt.nepoch + opt.nepoch_decay + 1):
+    for epoch in range(start_epoch, opt.nepoch + opt.nepoch_decay + 1):
         # Load training data to sample random patches every epoch
         data_start_time = time.time()
         data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', shuffle=True, Nbpatches=opt.npatches, data_augmentation=opt.data_augmentation,
