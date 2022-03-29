@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import math
 import random
 # from IPython import embed
-import json, os
+import json, os, glob
 from PIL import Image, ImageDraw
 
 def json_readfile(filename):
@@ -215,6 +215,24 @@ class Visualizer():
 
     def plot_patches(self, epoch, patches, position, name='', stimulus=None, jitter=False):
         plot_patches(self.web_dir,epoch, patches, position, name, stimulus, jitter)
+
+    def load_state(self):
+        list_files = glob.glob(os.path.join(self.web_dir,'*_x.npy'))
+        keys = [file.rsplit("/",1)[1][:-6] for file in list_files]
+        self.plot_data = {'X':[],'Y':[], 'legend':keys}
+        print(keys)
+        for kk,kname in enumerate(keys):
+            x = np.load(os.path.join(self.web_dir,'%s_x.npy')%kname)
+            y = np.load(os.path.join(self.web_dir,'%s_y.npy')%kname)
+            self.plot_data['X'] = x
+            print(kname,x,y)
+            if len(self.plot_data['Y']) == 0:
+                self.plot_data['Y'] = np.array([[0 for kk in keys] for xx in x])
+                print(self.plot_data['Y'])
+            print(kk)
+            self.plot_data['Y'][:,kk] = y
+        self.plot_data['Y'] = np.asarray(self.plot_data['Y'])
+
 
     # save errors into a directory
     def plot_current_errors_save(self, epoch, counter_ratio, opt, errors,keys='+ALL',name='loss', to_plot=False):

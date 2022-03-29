@@ -230,6 +230,11 @@ class Trainer():
             self.save_network(self.net.module, path, '', label)
         else:
             self.save_network(self.net, path, '', label)
+    def load(self, path, label):
+        if(self.use_gpu):
+            self.load_network(self.net.module, path, '', label)
+        else:
+            self.load_network(self.net, path, '', label)
 
     # helper saving function that can be used by subclasses
     def save_network(self, network, path, network_label, epoch_label):
@@ -238,9 +243,9 @@ class Trainer():
         torch.save(network.state_dict(), save_path)
 
     # helper loading function that can be used by subclasses
-    def load_network(self, network, network_label, epoch_label):
+    def load_network(self, network, path, network_label, epoch_label):
         save_filename = '%s_net_%s.pth' % (epoch_label, network_label)
-        save_path = os.path.join(self.save_dir, save_filename)
+        save_path = os.path.join(path, save_filename)
         print('Loading network from %s'%save_path)
         network.load_state_dict(torch.load(save_path))
 
