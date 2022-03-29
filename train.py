@@ -47,6 +47,7 @@ if __name__ == '__main__':
     parser.add_argument('--display_freq', type=int, default=0, help='frequency (in instances) of showing training results on screen')
     parser.add_argument('--print_freq', type=int, default=0, help='frequency (in instances) of showing training results on console')
     parser.add_argument('--save_epoch_freq', type=int, default=1, help='frequency of saving checkpoints at the end of epochs')
+    parser.add_argument('--resume', type=int, default=0, help='checkpoints to resume training')
     parser.add_argument('--display_id', type=int, default=0, help='window id of the visdom display, [0] for no displaying')
     parser.add_argument('--display_winsize', type=int, default=256,  help='display window size')
     parser.add_argument('--display_port', type=int, default=8001,  help='visdom display port')
@@ -69,6 +70,7 @@ if __name__ == '__main__':
         print(opt)
         sys.stdout = original_stdout 
 
+
     # initialize model
     trainer = lpips.Trainer(model=opt.model, net=opt.net, use_gpu=opt.use_gpu, is_train=True, lr=opt.lr,
         fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch, weight_output=opt.weight_output,
@@ -79,6 +81,11 @@ if __name__ == '__main__':
 
     train_visualizer = Visualizer(opt, "train")
     test_visualizer = Visualizer(opt, "test")
+
+    if opt.resume > 0:
+        trainer.load(opt.save_dir, opt.resume)
+        test_visualizer.load_state()
+        train_visualizer.load_state()
 
     # load data from all test sets 
     # The random patches for the test set are only sampled once at the beginning of training in order to avoid noise in the validation loss.
