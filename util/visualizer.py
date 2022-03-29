@@ -220,16 +220,21 @@ class Visualizer():
         list_files = glob.glob(os.path.join(self.web_dir,'*_x.npy'))
         keys = [file.rsplit("/",1)[1][:-6] for file in list_files]
         self.plot_data = {'X':[],'Y':[], 'legend':keys}
-        print(keys)
+        #print(keys)
         for kk,kname in enumerate(keys):
             x = np.load(os.path.join(self.web_dir,'%s_x.npy')%kname)
             y = np.load(os.path.join(self.web_dir,'%s_y.npy')%kname)
+            if x.shape[0] % len(keys) != 0:
+                # fill in
+                for _ in range(len(keys) - (x.shape[0] % len(keys))):
+                    x=np.append(x,x[-1])
+                    y=np.append(y,y[-1])
             self.plot_data['X'] = x
-            print(kname,x,y)
+            #print(kname,x,y)
             if len(self.plot_data['Y']) == 0:
                 self.plot_data['Y'] = np.array([[0 for kk in keys] for xx in x])
-                print(self.plot_data['Y'])
-            print(kk)
+                #print(self.plot_data['Y'])
+            #print(kk)
             self.plot_data['Y'][:,kk] = y
         self.plot_data['Y'] = np.asarray(self.plot_data['Y'])
 
