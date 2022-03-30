@@ -17,32 +17,40 @@ random.seed(0)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    #model/data parameters (same for train or test)
+    ##### model/data parameters (same for train or test)
+    #dataset
     parser.add_argument('--datasets', type=str, nargs='+', help='datasets to train on')
+    parser.add_argument('--multiview', action='store_true', help='use patches from different views')
+    #model (do not change)
     parser.add_argument('--model', type=str, default='lpips', help='distance model type [lpips] for linearly calibrated net, [baseline] for off-the-shelf network, [l2] for euclidean distance, [ssim] for Structured Similarity Image Metric')
     parser.add_argument('--net', type=str, default='alex', help='[squeeze], [alex], or [vgg] for network architectures')
-    parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
-    parser.add_argument('--fc_on_diff', action='store_true', help='put a few fc layer on top of diff instead of normalizing/averaging')
-    parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
-    parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
+    #for scores
+    parser.add_argument('--branch_type', type=str, help='how to get values for each patch: fc or conv', choices=['conv','fc'])
     parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top of FC for scores (force to be in [0,1])')
+    parser.add_argument('--square_diff', action='store_true', help='square the diff of features (done in LPIPS)')
+    parser.add_argument('--normalize_feats', action='store_true', help='normalize the features before doing diff (in LPIPS)')
+    #only for weights
+    parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
+    parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
     parser.add_argument('--weight_multiscale', action='store_true', help='gives all the features to weight branch. If False, gives only last feature map')
-    parser.add_argument('--multiview', action='store_true', help='use patches from different views')
-    #material stuff
+    ##### material stuff
     parser.add_argument('--use_gpu', action='store_true', help='turn on flag to use GPU')
     parser.add_argument('--gpu_ids', type=int, nargs='+', default=[0], help='gpus to use')
     parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
-    #trainin param
+    ##### training param
     parser.add_argument('--nepoch', type=int, default=5, help='# epochs at base learning rate')
     parser.add_argument('--nepoch_decay', type=int, default=5, help='# additional epochs at linearly learning rate')
     parser.add_argument('--decay_type', type=str, default='divide', help='linear or divide', choices=['divide','linear'])
     parser.add_argument('--npatches', type=int, default=65, help='# randomly sampled image patches')
     parser.add_argument('--nInputImg', type=int, default=4, help='# stimuli/images in each batch')
+    parser.add_argument('--data_augmentation', action='store_true', help='use data augmentation on training data')
     parser.add_argument('--lr', type=float, default=0.0001, help='# initial learning rate')
+    parser.add_argument('--beta1', type=float, default=0.5, help='# beta1 for adam optimizer')
     parser.add_argument('--from_scratch', action='store_true', help='model was initialized from scratch')
     parser.add_argument('--train_trunk', action='store_true', help='model trunk was trained/tuned')
-    parser.add_argument('--data_augmentation', action='store_true', help='use data augmentation on training data')
-    # display/output options
+    parser.add_argument('--loss', type=str, help='type of loss: L1 or L2', choices=['l1','l2'])
+    parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
+    ##### display/output options
     parser.add_argument('--testset_freq', type=int, default=5, help='frequency of evaluating the testset')
     parser.add_argument('--display_freq', type=int, default=0, help='frequency (in instances) of showing training results on screen')
     parser.add_argument('--print_freq', type=int, default=0, help='frequency (in instances) of showing training results on console')
@@ -72,10 +80,11 @@ if __name__ == '__main__':
 
 
     # initialize model
-    trainer = lpips.Trainer(model=opt.model, net=opt.net, use_gpu=opt.use_gpu, is_train=True, lr=opt.lr,
-        fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch, weight_output=opt.weight_output,
-        dropout_rate=opt.dropout_rate, tanh_score=opt.tanh_score, weight_multiscale=opt.weight_multiscale,
-        pnet_rand=opt.from_scratch, pnet_tune=opt.train_trunk, gpu_ids=opt.gpu_ids, printNet=opt.print_net)
+    trainer = lpips.Trainer(model=opt.model, net=opt.net, use_gpu=opt.use_gpu, 
+        pnet_rand=opt.from_scratch, pnet_tune=opt.train_trunk, gpu_ids=opt.gpu_ids, printNet=opt.print_net,
+        is_train=True, lr=opt.lr, beta1=opt.beta1,dropout_rate=opt.dropout_rate, loss=opt.loss,
+        branch_type=opt.branch_type, tanh_score=opt.tanh_score, normalize_feats=opt.normalize_feats, square_diff=opt.square_diff,
+        weight_patch=opt.weight_patch, weight_output=opt.weight_output,weight_multiscale=opt.weight_multiscale)
 
     load_size = 64 # default value is 64
     start_epoch=1
