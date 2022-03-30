@@ -136,7 +136,7 @@ class LPIPS(nn.Module):
                 per_patch_weight = self.fc2_weight(self.dropout(F.relu(self.fc1_weight(diff))))
 
         else:
-            diffs = [(feats0[kk]-feats1[kk])**power for kk in range(self.L)]
+            diffs = [(outs0[kk]-outs1[kk])**power for kk in range(self.L)]
 
             res = [self.lins[kk](diffs[kk]) for kk in range(self.L)]
             if(self.spatial):
