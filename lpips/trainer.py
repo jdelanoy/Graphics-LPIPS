@@ -83,10 +83,12 @@ class Trainer():
     def name(self):
         return self.model_name
 
-    def __init__(self, model='lpips', net='alex', colorspace='Lab', pnet_rand=False, pnet_tune=False, model_path=None,
-            use_gpu=True, printNet=False, spatial=False,
-            weight_patch=False, fc_on_diff=False, weight_output='relu', tanh_score = False, dropout_rate=0, weight_multiscale = False,
-            is_train=False, lr=.001, beta1=0.5, version='0.1', gpu_ids=[0]):
+    def __init__(self, model='lpips', net='alex', colorspace='Lab', version='0.1', #original params // not used
+            pnet_rand=False, pnet_tune=False, # param about pretrained part of net
+            model_path=None, use_gpu=True, gpu_ids=[0], printNet=False, # global params
+            spatial=False, square_diff=True, normalize_feats=True, branch_type="conv", tanh_score = False, #score output
+            weight_patch=False, weight_output='relu', weight_multiscale = False, # weight output
+            is_train=False, lr=.001, beta1=0.5, dropout_rate=0, loss="l1"): # training param
         '''
         INPUTS
             model - ['lpips'] for linearly calibrated network
@@ -114,12 +116,14 @@ class Trainer():
         self.model_name = '%s [%s]'%(model,net)
         self.weight_patch = weight_patch
 
+
         if(self.model == 'lpips'): # pretrained net + linear layer
-            self.net = lpips.LPIPS(pretrained=not is_train, net=net, version=version, lpips=True, spatial=spatial, 
+            self.net = lpips.LPIPS(pretrained=not is_train, net=net, version=version, 
                 pnet_rand=pnet_rand, pnet_tune=pnet_tune, 
-                use_dropout=True, model_path=model_path, eval_mode=False,
-                fc_on_diff=fc_on_diff, weight_patch=weight_patch, weight_output=weight_output, 
-                dropout_rate=dropout_rate, tanh_score=tanh_score, weight_multiscale=weight_multiscale)
+                model_path=model_path, eval_mode=False,
+                spatial=spatial, branch_type=branch_type, square_diff=square_diff, normalize_feats=normalize_feats, tanh_score=tanh_score,
+                weight_patch=weight_patch, weight_output=weight_output, weight_multiscale=weight_multiscale, 
+                use_dropout=True,dropout_rate=dropout_rate)
         elif(self.model=='baseline'): # pretrained network
             self.net = lpips.LPIPS(pnet_rand=pnet_rand, net=net, lpips=False)
         elif(self.model in ['L2','l2']):
@@ -134,7 +138,7 @@ class Trainer():
         self.parameters = list(self.net.parameters())
 
         if self.is_train: # training mode
-            self.loss = lpips.L1Loss()
+            self.loss = lpips.L1Loss() if loss == "l1" else lpips.L2Loss()
             self.lr = lr
             self.old_lr = lr
             self.optimizer_net = torch.optim.Adam(self.parameters, lr=lr, betas=(beta1, 0.999))

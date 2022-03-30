@@ -28,9 +28,12 @@ def flatten_and_concat(list_tensor): # takes a list of tensors N_i xCxHxW input 
 
 # Learned perceptual metric
 class LPIPS(nn.Module):
-    def __init__(self, pretrained=True, net='alex', version='0.1', lpips=True, spatial=False, 
-        pnet_rand=False, pnet_tune=False, use_dropout=True, model_path=None, eval_mode=True, verbose=True, 
-        weight_patch=False, fc_on_diff=False, weight_output='relu', tanh_score = False, weight_multiscale = False, dropout_rate=0):
+    def __init__(self, pretrained=True, net='alex', version='0.1', # old params (do not use)
+            pnet_rand=False, pnet_tune=False, # param about pretrained part of net
+            model_path=None, eval_mode=True, verbose=True, # global params
+            spatial=False, square_diff=True, normalize_feats=True, branch_type="conv", tanh_score = False, #score output
+            weight_patch=False, weight_output='relu', weight_multiscale = False, # weight output
+            use_dropout=True, dropout_rate=0): # training param
         # lpips - [True] means with linear calibration on top of base network
         # pretrained - [True] means load linear weights
         # pnet_rand - random initialization of base network
@@ -53,19 +56,24 @@ class LPIPS(nn.Module):
         self.lpips = lpips # false means baseline of just averaging all layers
         self.version = version
         self.scaling_layer = ScalingLayer()
+        
         self.weight_patch = weight_patch
-        self.fc_on_diff = fc_on_diff
+        self.branch_type = branch_type
+        self.square_diff = square_diff
+        self.normalize_feats = normalize_feats
+        self.tanh_score = tanh_score
+        self.weight_output = weight_output
+        self.weight_multiscale = weight_multiscale
 
-        if self.fc_on_diff:
+        if self.branch_type == "fc":
             self.fc1_score = nn.Linear(31872, 512)
             self.fc2_score = nn.Linear(512,1)
             self.ref_score_subtract = nn.Linear(1,1)
-            self.tanh_score = tanh_score
-        if self.weight_patch:
-            self.fc1_weight = nn.Linear(2304 if not weight_multiscale else 31872,512)
-            self.fc2_weight = nn.Linear(512,1)
-            self.weight_output = weight_output
-            self.weight_multiscale = weight_multiscale
+            if self.weight_patch:
+                self.fc1_weight = nn.Linear(2304 if not weight_multiscale else 31872,512)
+                self.fc2_weight = nn.Linear(512,1)
+
+
         self.dropout = nn.Dropout(dropout_rate)
 
         if(self.pnet_type in ['vgg','vgg16']):
@@ -79,30 +87,23 @@ class LPIPS(nn.Module):
             self.chns = [64,128,256,384,384,512,512]
         self.L = len(self.chns)
 
+        #if (branch_type == "conv"):
+        self.lins = nn.ModuleList([NetLinLayer(n_channels, use_dropout=use_dropout) for n_channels in self.chns])
+        if self.weight_patch and branch_type == "conv":
+            self.lins_weights = nn.ModuleList([NetLinLayer(n_channels, use_dropout=use_dropout) for n_channels in self.chns])
+        
+
+
         self.net = net_type(pretrained=not self.pnet_rand, requires_grad=self.pnet_tune)
 
-        if(lpips):
-            self.lin0 = NetLinLayer(self.chns[0], use_dropout=use_dropout)
-            self.lin1 = NetLinLayer(self.chns[1], use_dropout=use_dropout)
-            self.lin2 = NetLinLayer(self.chns[2], use_dropout=use_dropout)
-            self.lin3 = NetLinLayer(self.chns[3], use_dropout=use_dropout)
-            self.lin4 = NetLinLayer(self.chns[4], use_dropout=use_dropout)
-            self.lins = [self.lin0,self.lin1,self.lin2,self.lin3,self.lin4]
-            if(self.pnet_type=='squeeze'): # 7 layers for squeezenet
-                self.lin5 = NetLinLayer(self.chns[5], use_dropout=use_dropout)
-                self.lin6 = NetLinLayer(self.chns[6], use_dropout=use_dropout)
-                self.lins+=[self.lin5,self.lin6]
-            self.lins = nn.ModuleList(self.lins)
-
-            if(pretrained):
-                if(model_path is None):
-                    import inspect
-                    import os
-                    model_path = os.path.abspath(os.path.join(inspect.getfile(self.__init__), '..', 'weights/v%s/%s.pth'%(version,net)))
-
-                if(verbose):
-                    print('Loading models from: %s'%model_path)
-                self.load_state_dict(torch.load(model_path, map_location='cpu'), strict=False)          
+        if(pretrained):
+            if(model_path is None):
+                import inspect
+                import os
+                model_path = os.path.abspath(os.path.join(inspect.getfile(self.__init__), '..', 'weights/v%s/%s.pth'%(version,net)))
+            if(verbose):
+                print('Loading models from: %s'%model_path)
+            self.load_state_dict(torch.load(model_path, map_location='cpu'), strict=False)          
 
         if(eval_mode):
             self.eval()
@@ -115,48 +116,53 @@ class LPIPS(nn.Module):
         # v0.0 - original release had a bug, where input was not scaled
         in0_input, in1_input = (self.scaling_layer(in0), self.scaling_layer(in1)) if self.version=='0.1' else (in0, in1)
         outs0, outs1 = self.net.forward(in0_input), self.net.forward(in1_input)
-        feats0, feats1, diffs = {}, {}, {}
 
-        if self.fc_on_diff:
-            diff_ms = flatten_and_concat(outs1) - flatten_and_concat(outs0)
-            val = (self.fc2_score(self.dropout(F.relu(self.fc1_score(diff_ms)))))
-            if self.tanh_score:
-                val = F.tanh(val)/2+0.5+0.000001
+        feats0, feats1, diffs = [], [], []
+        if self.normalize_feats:
+            for kk in range(self.L):
+                feats0.append(lpips.normalize_tensor(outs0[kk]))
+                feats1.append(lpips.normalize_tensor(outs1[kk]))
+            outs0, outs1=feats0,feats1
+        power = 2 if self.square_diff else 1
+
+        #feats0, feats1, diffs = {}, {}, {}
+
+        if self.branch_type == "fc":
+            diff = (flatten_and_concat(outs1) - flatten_and_concat(outs0))**power
+            val = (self.fc2_score(self.dropout(F.relu(self.fc1_score(diff)))))
+            if self.weight_patch:
+                if not self.weight_multiscale:
+                    diff = (flatten(outs1[-1]) - flatten(outs0[-1]))**power
+                per_patch_weight = self.fc2_weight(self.dropout(F.relu(self.fc1_weight(diff))))
 
         else:
-            for kk in range(self.L):
-                feats0[kk], feats1[kk] = lpips.normalize_tensor(outs0[kk]), lpips.normalize_tensor(outs1[kk])
-                diffs[kk] = (feats0[kk]-feats1[kk])**2
-                
+            diffs = [(feats0[kk]-feats1[kk])**power for kk in range(self.L)]
 
-            if(self.lpips):
-                if(self.spatial):
-                    res = [upsample(self.lins[kk](diffs[kk]), out_HW=in0.shape[2:]) for kk in range(self.L)]
-                else:
-                    res = [spatial_average(self.lins[kk](diffs[kk]), keepdim=True) for kk in range(self.L)]
+            res = [self.lins[kk](diffs[kk]) for kk in range(self.L)]
+            if(self.spatial):
+                res = [upsample(res[kk], out_HW=in0.shape[2:]) for kk in range(self.L)]
             else:
+                res = [spatial_average(res[kk], keepdim=True) for kk in range(self.L)]
+            val = sum(res)
+            # val = res[0]
+            # for l in range(1,self.L):
+            #     val += res[l]
+            if self.weight_patch:
+                res = [self.lins_weights[kk](diffs[kk]) for kk in range(self.L)]
                 if(self.spatial):
-                    res = [upsample(diffs[kk].sum(dim=1,keepdim=True), out_HW=in0.shape[2:]) for kk in range(self.L)]
+                    res = [upsample(res[kk], out_HW=in0.shape[2:]) for kk in range(self.L)]
                 else:
-                    res = [spatial_average(diffs[kk].sum(dim=1,keepdim=True), keepdim=True) for kk in range(self.L)]
+                    res = [spatial_average(res[kk], keepdim=True) for kk in range(self.L)]
+                per_patch_weight = sum(res)
 
-            val = res[0]
-            for l in range(1,self.L):
-                val += res[l]
+        if self.tanh_score:
+            val = F.tanh(val)/2+0.5+0.000001
 
         if self.weight_patch:
-            #const = Variable(torch.from_numpy(0.000001*np.ones((1,))).float(), requires_grad=False).to(val.device)
-            if self.weight_multiscale:
-                diff_coarse = flatten_and_concat(outs1) - flatten_and_concat(outs0)
-            else:   
-                diff_coarse = flatten(outs1[-1]) - flatten(outs0[-1])
-            fc_output = self.fc2_weight(self.dropout(F.relu(self.fc1_weight(diff_coarse))))
             if self.weight_output == 'relu':
-                per_patch_weight = F.relu(fc_output)+0.000001
+                per_patch_weight = F.relu(per_patch_weight)+0.000001
             elif self.weight_output == 'tanh':
-                per_patch_weight = F.tanh(fc_output)/2+0.5+0.000001
-            else:
-                per_patch_weight = fc_output
+                per_patch_weight = F.tanh(per_patch_weight)/2+0.5+0.000001
         else:
             #return weight of 1
             per_patch_weight = torch.ones(val.shape).to(val.device)
