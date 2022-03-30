@@ -29,6 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top of FC for scores (force to be in [0,1])')
     parser.add_argument('--square_diff', action='store_true', help='square the diff of features (done in LPIPS)')
     parser.add_argument('--normalize_feats', action='store_true', help='normalize the features before doing diff (in LPIPS)')
+    parser.add_argument('--nconv', type=int, default=1, help='number of conv in the conv branch')
     #only for weights
     parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
     parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
@@ -83,7 +84,7 @@ if __name__ == '__main__':
     trainer = lpips.Trainer(model=opt.model, net=opt.net, use_gpu=opt.use_gpu, 
         pnet_rand=opt.from_scratch, pnet_tune=opt.train_trunk, gpu_ids=opt.gpu_ids, printNet=opt.print_net,
         is_train=True, lr=opt.lr, beta1=opt.beta1,dropout_rate=opt.dropout_rate, loss=opt.loss,
-        branch_type=opt.branch_type, tanh_score=opt.tanh_score, normalize_feats=opt.normalize_feats, square_diff=opt.square_diff,
+        branch_type=opt.branch_type, tanh_score=opt.tanh_score, normalize_feats=opt.normalize_feats, square_diff=opt.square_diff, nconv=opt.nconv,
         weight_patch=opt.weight_patch, weight_output=opt.weight_output,weight_multiscale=opt.weight_multiscale)
 
     load_size = 64 # default value is 64

@@ -31,7 +31,7 @@ class LPIPS(nn.Module):
     def __init__(self, pretrained=True, net='alex', version='0.1', # old params (do not use)
             pnet_rand=False, pnet_tune=False, # param about pretrained part of net
             model_path=None, eval_mode=True, verbose=True, # global params
-            spatial=False, square_diff=True, normalize_feats=True, branch_type="conv", tanh_score = False, #score output
+            spatial=False, square_diff=True, normalize_feats=True, branch_type="conv", tanh_score = False, nconv = 1, #score output
             weight_patch=False, weight_output='relu', weight_multiscale = False, # weight output
             use_dropout=True, dropout_rate=0): # training param
         # lpips - [True] means with linear calibration on top of base network
@@ -88,9 +88,9 @@ class LPIPS(nn.Module):
         self.L = len(self.chns)
 
         #if (branch_type == "conv"):
-        self.lins = nn.ModuleList([NetLinLayer(n_channels, use_dropout=use_dropout) for n_channels in self.chns])
+        self.lins = nn.ModuleList([NetLinLayer(n_channels, use_dropout=use_dropout, nconv=nconv) for n_channels in self.chns])
         if self.weight_patch and branch_type == "conv":
-            self.lins_weights = nn.ModuleList([NetLinLayer(n_channels, use_dropout=use_dropout) for n_channels in self.chns])
+            self.lins_weights = nn.ModuleList([NetLinLayer(n_channels, use_dropout=use_dropout, nconv=nconv) for n_channels in self.chns])
         
 
 
@@ -188,18 +188,19 @@ class ScalingLayer(nn.Module):
 
 class NetLinLayer(nn.Module):
     ''' A single linear layer which does a 1x1 conv '''
-    def __init__(self, chn_in, chn_out=1, use_dropout=False):
+    def __init__(self, chn_in, chn_out=1, use_dropout=False, nconv=1):
         super(NetLinLayer, self).__init__()
 
         #layers = [nn.Dropout(),] if(use_dropout) else []
         #layers += [nn.Conv2d(chn_in, chn_out, 1, stride=1, padding=0, bias=False),]
         
-        chn_mid = chn_in # i tried 32: but not much improvement
+        chn_mid = chn_in # not used yet
         layers = [nn.Dropout(),] if(use_dropout) else []
-        layers += [nn.Conv2d(chn_in, chn_mid, 1, stride=1, padding=0, bias=False),]
-        layers += [nn.LeakyReLU(0.2,True),]
-        layers += [nn.Dropout(),] if(use_dropout) else []
-        layers += [nn.Conv2d(chn_mid, chn_out, 1, stride=1, padding=0, bias=False),]
+        for _ in range(nconv):
+            layers += [nn.Conv2d(chn_in, chn_in, 1, stride=1, padding=0, bias=False),]
+            layers += [nn.LeakyReLU(0.2,True),]
+            layers += [nn.Dropout(),] if(use_dropout) else []
+        layers += [nn.Conv2d(chn_in, chn_out, 1, stride=1, padding=0, bias=False),]
         self.model = nn.Sequential(*layers)
 
     def forward(self, x):

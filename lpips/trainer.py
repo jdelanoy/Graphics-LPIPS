@@ -86,7 +86,7 @@ class Trainer():
     def __init__(self, model='lpips', net='alex', colorspace='Lab', version='0.1', #original params // not used
             pnet_rand=False, pnet_tune=False, # param about pretrained part of net
             model_path=None, use_gpu=True, gpu_ids=[0], printNet=False, # global params
-            spatial=False, square_diff=True, normalize_feats=True, branch_type="conv", tanh_score = False, #score output
+            spatial=False, square_diff=True, normalize_feats=True, branch_type="conv", tanh_score = False,  nconv = 1,#score output
             weight_patch=False, weight_output='relu', weight_multiscale = False, # weight output
             is_train=False, lr=.001, beta1=0.5, dropout_rate=0, loss="l1"): # training param
         '''
@@ -121,7 +121,7 @@ class Trainer():
             self.net = lpips.LPIPS(pretrained=not is_train, net=net, version=version, 
                 pnet_rand=pnet_rand, pnet_tune=pnet_tune, 
                 model_path=model_path, eval_mode=False,
-                spatial=spatial, branch_type=branch_type, square_diff=square_diff, normalize_feats=normalize_feats, tanh_score=tanh_score,
+                spatial=spatial, branch_type=branch_type, square_diff=square_diff, normalize_feats=normalize_feats, tanh_score=tanh_score, nconv=nconv,
                 weight_patch=weight_patch, weight_output=weight_output, weight_multiscale=weight_multiscale, 
                 use_dropout=True,dropout_rate=dropout_rate)
         elif(self.model=='baseline'): # pretrained network
