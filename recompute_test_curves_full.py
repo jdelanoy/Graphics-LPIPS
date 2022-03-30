@@ -44,18 +44,18 @@ parser.add_argument('--nThreads', type=int, default=4, help='number of threads t
 opt = parser.parse_args()
 
 
-losses=[]
-l2s = []
-srocc = []
-fits = []
-x=[]
+losses=np.array([])
+l2s = np.array([])
+srocc = np.array([])
+fits = np.array([])
+x=np.array([])
 
 ## Initializing the model
 
 for model_path in (opt.model_path):
     print(model_path)
     iter = int(model_path.rsplit("/",1)[1].split("_")[0])
-    x.append(iter)
+    x = np.append(x,iter)
 
     loss_fn = lpips.LPIPS(pretrained=True, net=opt.net,
                     use_dropout=True, model_path=model_path, eval_mode=True,
@@ -96,9 +96,9 @@ for model_path in (opt.model_path):
     List_MOS = np.array(List_MOS)
 
 
-    losses.append(np.mean(np.abs(List_GraphicsLPIPS-List_MOS)))
-    l2s.append(np.mean((List_GraphicsLPIPS-List_MOS)**2)) 
-    srocc.append(stats.spearmanr(List_GraphicsLPIPS, List_MOS)[0])
+    losses = np.append(losses,np.mean(np.abs(List_GraphicsLPIPS-List_MOS)))
+    l2s = np.append(l2s,np.mean((List_GraphicsLPIPS-List_MOS)**2)) 
+    srocc = np.append(srocc,stats.spearmanr(List_GraphicsLPIPS, List_MOS)[0])
 
     # Instantiate a binomial family model with the logit link function (the default link function).
     List_GraphicsLPIPS = sm.add_constant(List_GraphicsLPIPS)
@@ -108,7 +108,7 @@ for model_path in (opt.model_path):
     corrPears =  stats.pearsonr(fitted_GraphicsLpips, List_MOS)[0]
     corrSpear =  stats.spearmanr(fitted_GraphicsLpips, List_MOS)[0]
 
-    fits.append(corrPears)
+    fits = np.append(fits,corrPears)
 
 output_path=opt.output_dir
 
@@ -132,6 +132,7 @@ output_path=opt.output_dir
 #         srocc=np.load(os.path.join(output_path,"SROCC_y.npy"))
 
 sorting=np.argsort(x)
+print(x,sorting)
 x = x[sorting]
 l2s = l2s[sorting]
 losses = losses[sorting]
