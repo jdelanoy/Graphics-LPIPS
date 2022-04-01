@@ -79,15 +79,23 @@ if __name__ == '__main__':
     parser.add_argument('-o','--output_dir', type=str, default='./GraphicsLPIPS_TestsetScores.csv')
     parser.add_argument('-v','--version', type=str, default='0.1')
     parser.add_argument('--use_gpu', action='store_true', help='turn on flag to use GPU')
-
-    parser.add_argument('--net', type=str, default='alex', help='[squeeze], [alex], or [vgg] for network architectures')
-    parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
-    parser.add_argument('--fc_on_diff', action='store_true', help='put a few fc layer on top of diff instead of normalizing/averaging')
-    parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
-    parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top of FC for scores (force to be in [0,1])')
-    parser.add_argument('--weight_multiscale', action='store_true', help='gives all the features to weight branch. If False, gives only last feature map')
+    #dataset
+    parser.add_argument('--datasets', type=str, nargs='+', help='datasets to train on')
     parser.add_argument('--multiview', action='store_true', help='use patches from different views')
-    parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
+    #model (do not change)
+    parser.add_argument('--model', type=str, default='lpips', help='distance model type [lpips] for linearly calibrated net, [baseline] for off-the-shelf network, [l2] for euclidean distance, [ssim] for Structured Similarity Image Metric')
+    parser.add_argument('--net', type=str, default='alex', help='[squeeze], [alex], or [vgg] for network architectures')
+    #for scores
+    parser.add_argument('--branch_type', type=str, help='how to get values for each patch: fc or conv', choices=['conv','fc'])
+    parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top of FC for scores (force to be in [0,1])')
+    parser.add_argument('--square_diff', action='store_true', help='square the diff of features (done in LPIPS)')
+    parser.add_argument('--normalize_feats', action='store_true', help='normalize the features before doing diff (in LPIPS)')
+    parser.add_argument('--nconv', type=int, default=1, help='number of conv in the conv branch')
+    #only for weights
+    parser.add_argument('--weight_patch', action='store_true', help='compute a weight for each patch')
+    parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
+    parser.add_argument('--weight_multiscale', action='store_true', help='gives all the features to weight branch. If False, gives only last feature map')
+
     parser.add_argument('--do_plots', action='store_true', help='plot the maps')
 
     parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
@@ -96,11 +104,13 @@ if __name__ == '__main__':
     opt = parser.parse_args()
 
     ## Initializing the model
+   
+        
 
     loss_fn = lpips.LPIPS(pretrained=True, net=opt.net,
-                    use_dropout=True, model_path=opt.model_path, eval_mode=True,
-                    fc_on_diff=opt.fc_on_diff, weight_patch=opt.weight_patch, weight_output=opt.weight_output, 
-                    dropout_rate=0.0, tanh_score=opt.tanh_score, weight_multiscale=opt.weight_multiscale)
+                    use_dropout=True, model_path=opt.model_path, eval_mode=True,dropout_rate=0.0, 
+                    branch_type=opt.branch_type, tanh_score=opt.tanh_score, normalize_feats=opt.normalize_feats, square_diff=opt.square_diff, nconv=opt.nconv,
+                    weight_patch=opt.weight_patch, weight_output=opt.weight_output,weight_multiscale=opt.weight_multiscale)
     if(opt.use_gpu):
         loss_fn.cuda()
 
