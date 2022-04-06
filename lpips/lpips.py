@@ -148,11 +148,13 @@ class LPIPS(nn.Module):
             # for l in range(1,self.L):
             #     val += res[l]
             if self.weight_patch:
-                res = [self.lins_weights[kk](diffs[kk]) for kk in range(self.L)]
+                if not self.weight_multiscale:
+                    diffs = diffs[-1]
+                res = [self.lins_weights[kk](diffs[kk]) for kk in range(len(diffs))]
                 if(self.spatial):
-                    res = [upsample(res[kk], out_HW=in0.shape[2:]) for kk in range(self.L)]
+                    res = [upsample(res[kk], out_HW=in0.shape[2:]) for kk in range(len(res))]
                 else:
-                    res = [spatial_average(res[kk], keepdim=True) for kk in range(self.L)]
+                    res = [spatial_average(res[kk], keepdim=True) for kk in range(len(res))]
                 per_patch_weight = sum(res)
 
         if self.tanh_score:
