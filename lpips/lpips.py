@@ -91,6 +91,8 @@ class LPIPS(nn.Module):
         self.lins = nn.ModuleList([NetLinLayer(n_channels, use_dropout=use_dropout, nconv=nconv) for n_channels in self.chns])
         if self.weight_patch and branch_type == "conv":
             self.lins_weights = nn.ModuleList([NetLinLayer(n_channels, use_dropout=use_dropout, nconv=nconv) for n_channels in self.chns])
+            if not self.weight_multiscale:
+                self.lins_weights = self.lins_weights[-1:]
         
 
 
@@ -149,7 +151,8 @@ class LPIPS(nn.Module):
             #     val += res[l]
             if self.weight_patch:
                 if not self.weight_multiscale:
-                    diffs = diffs[-1]
+                    diffs = diffs[-1:]
+                    #self.lins_weights = self.lins_weights[-1:]
                 res = [self.lins_weights[kk](diffs[kk]) for kk in range(len(diffs))]
                 if(self.spatial):
                     res = [upsample(res[kk], out_HW=in0.shape[2:]) for kk in range(len(res))]
