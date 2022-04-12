@@ -169,7 +169,7 @@ if __name__ == '__main__':
 
                 f.writelines(f'{model},{dist},{simp},{qp},{qt},{size},{jpeg},{MOSpredicted.item()},{MOS},{var_score},{var_weight},{mean_score},{mean_weight},{entropy_score},{entropy_weight}, {spearm}, {pears}\n')
                 line_count +=1
-                #if line_count > 10: break
+                if line_count > 605: break
     f.close()
 
     f = open(opt.output_dir+"/GraphicsLPIPS_global.csv",'w')
