@@ -17,8 +17,8 @@ class TwoAFCDataset(BaseDataset):
         if(not isinstance(dataroots,list)):
             dataroots = [dataroots,]
         dirroots = os.path.dirname(dataroots[0])+'/'
-        root_refPatches = dirroots+'References_patches_withVP_threth0.6'
-        root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
+        root_refPatches = dirroots+'References_patches_withVP_threth0.6_bigger'
+        root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6_bigger'
         #if(Trainset):           
         #    root_judges = dirroots+'judge_trainingset'
         #else:
@@ -116,7 +116,7 @@ class TwoAFCDataset(BaseDataset):
         # print(occurence_stimuliId)
 
         transform_list = []
-        transform_list.append(T.Resize(load_size))
+        transform_list.append(T.CenterCrop(load_size))
         transform_list += [T.ToTensor(),
             T.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))]
 
@@ -130,7 +130,7 @@ class TwoAFCDataset(BaseDataset):
                 T.Random90DegRotClockWise(0.5),
                 #T.Albumentations(50,50,0.5), # change in color
                 #T.RandomResize(low=load_size, high=int(load_size*1.2)),
-                #T.RandomCrop(size=load_size),
+                T.RandomCrop(size=load_size),
                 ####T.RandomRotation(degrees=(-5, 5)), 
                 self.transform
             ])
