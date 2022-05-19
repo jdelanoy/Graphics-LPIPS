@@ -18,6 +18,7 @@ from statistics import mean
 from PIL import Image
 from util.visualizer import plot_patches
 import cv2
+from lpips.normalization import NormalizeImage
 
 def get_full_images(patch_paths, nb_images, nb_patches):
     images = []
@@ -323,10 +324,10 @@ class Tester():
             print("writing patches")
             #data = self.data_loader.load_data()[0]
             self.set_input(data)
-            patches = get_img_patches_from_data(self.input_p0, self.path, 4, 25)
+            patches = get_img_patches_from_data(NormalizeImage(self.input_p0,"lcn"), self.path, 4, 25)
             for i in range(len(patches[0])):
                 for j in range(len(patches[0][i])):
-                    #print (patches[0][i][j].shape)
+                    #print (np.min(patches[0][i][j]),np.max(patches[0][i][j]))
                     cv2.imwrite(f"patches/patch_{i}_{j}.png", patches[0][i][j])
             break
 
