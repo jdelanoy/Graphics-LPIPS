@@ -150,6 +150,7 @@ class LPIPS(nn.Module):
             # for l in range(1,self.L):
             #     val += res[l]
             if self.weight_patch:
+                #diffs = [(outs0[kk]-outs1[kk]) for kk in range(self.L)]
                 if not self.weight_multiscale:
                     diffs = diffs[-1:]
                     #self.lins_weights = self.lins_weights[-1:]
