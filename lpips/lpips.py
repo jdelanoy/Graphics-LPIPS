@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.nn.init as init
 from torch.autograd import Variable
 import numpy as np
+
+from lpips.normalization import NormalizeImage
 from . import pretrained_networks as pn
 import torch.nn
 import torch.nn.functional as F
@@ -117,6 +119,8 @@ class LPIPS(nn.Module):
 
         # v0.0 - original release had a bug, where input was not scaled
         in0_input, in1_input = (self.scaling_layer(in0), self.scaling_layer(in1)) if self.version=='0.1' else (in0, in1)
+        normalization = "mean"
+        in0_input, in1_input = (NormalizeImage(in0_input, normalization), NormalizeImage(in1_input, normalization))
         outs0, outs1 = self.net.forward(in0_input), self.net.forward(in1_input)
 
         feats0, feats1, diffs = [], [], []
