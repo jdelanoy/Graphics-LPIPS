@@ -17,7 +17,7 @@ def get_gaussian_filter(kernel_shape):
             for j in range(0, kernel_shape[3]):
                 x[0, kernel_idx, i, j] = gauss(i - mid, j - mid)
 
-    return x / np.sum(x)
+    return torch.Tensor(x / np.sum(x))
 
 
 def LocalContrastNorm(image,radius=9):
@@ -32,7 +32,7 @@ def LocalContrastNorm(image,radius=9):
 
     n,c,h,w = image.shape[0],image.shape[1],image.shape[2],image.shape[3]
 
-    gaussian_filter = torch.Tensor(get_gaussian_filter((1,c,radius,radius)))
+    gaussian_filter = get_gaussian_filter((1,c,radius,radius)).to(image.get_device())
     filtered_out = F.conv2d(image,gaussian_filter,padding=radius-1)
     mid = int(np.floor(gaussian_filter.shape[2] / 2.))
     ### Subtractive Normalization
@@ -45,7 +45,7 @@ def LocalContrastNorm(image,radius=9):
     
     ## Divisive Normalization
     divisor = torch.maximum(per_img_mean,s_deviation)
-    divisor = torch.maximum(divisor, torch.Tensor([1e-4]))
+    divisor = torch.maximum(divisor, torch.Tensor([1e-4]).to(image.get_device()))
     new_image = centered_image / divisor
     return new_image
 
@@ -83,7 +83,7 @@ def UnitNorm(image):
     ## Variance Calc
     radius = 9
     mid = int((radius - 1)/2)
-    gaussian_filter = torch.Tensor(get_gaussian_filter((1,image.shape[1],radius,radius)))
+    gaussian_filter = get_gaussian_filter((1,image.shape[1],radius,radius)).to(image.get_device())
     sum_sqr_image = F.conv2d(centered_image.pow(2),gaussian_filter,padding=radius-1)
     s_deviation = sum_sqr_image[:,:,mid:-mid,mid:-mid].sqrt()
     #print(s_deviation.mean())
