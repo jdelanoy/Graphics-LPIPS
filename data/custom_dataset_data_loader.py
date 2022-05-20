@@ -30,7 +30,7 @@ class CustomDatasetDataLoader(BaseDataLoader):
     def name(self):
         return 'CustomDatasetDataLoader'
 
-    def initialize(self, data_csvfile, shuffle=False, Nbpatches=205, dataset_mode='2afc',load_size=64,batch_size=1,serial_batches=True, nThreads=1, multiview=False, data_augmentation=False):
+    def initialize(self, data_csvfile, shuffle=False, Nbpatches=205, dataset_mode='2afc',load_size=64,batch_size=1,serial_batches=True, nThreads=1, multiview=False, data_augmentation=False, use_big_patches=False):
         BaseDataLoader.initialize(self)
         if(not isinstance(data_csvfile,list)):
             data_csvfile = [data_csvfile,]
@@ -40,7 +40,7 @@ class CustomDatasetDataLoader(BaseDataLoader):
         g.manual_seed(0)
 
         self.dataset = TwoAFCDataset()
-        self.dataset.initialize(data_csvfile,load_size=load_size,shuffle = shuffle, maxNbPatches = Nbpatches, multiview=multiview, data_augmentation=data_augmentation)
+        self.dataset.initialize(data_csvfile,load_size=load_size,shuffle = shuffle, maxNbPatches = Nbpatches, multiview=multiview, data_augmentation=data_augmentation, use_big_patches=use_big_patches)
 
         #self.dataset = CreateDataset(data_csvfile,dataset_mode=dataset_mode,load_size=load_size, shuffle=shuffle, Nbpatches=Nbpatches, multiview=multiview)
         self.dataloader = torch.utils.data.DataLoader(

@@ -33,8 +33,9 @@ class LPIPS(nn.Module):
     def __init__(self, pretrained=True, net='alex', version='0.1', # old params (do not use)
             pnet_rand=False, pnet_tune=False, # param about pretrained part of net
             model_path=None, eval_mode=True, verbose=True, # global params
+            remove_scaling=False, norm_type="none",
             spatial=False, square_diff=True, normalize_feats=True, branch_type="conv", tanh_score = False, nconv = 1, #score output
-            weight_patch=False, weight_output='relu', weight_multiscale = False, # weight output
+            weight_patch=False, weight_output='relu', weight_multiscale = False, cut_diff2_weights=False, # weight output
             use_dropout=True, dropout_rate=0): # training param
         # lpips - [True] means with linear calibration on top of base network
         # pretrained - [True] means load linear weights
@@ -58,6 +59,8 @@ class LPIPS(nn.Module):
         self.lpips = lpips # false means baseline of just averaging all layers
         self.version = version
         self.scaling_layer = ScalingLayer()
+        self.remove_scaling = remove_scaling
+        self.normalization=norm_type
         
         self.weight_patch = weight_patch
         self.branch_type = branch_type
@@ -66,6 +69,7 @@ class LPIPS(nn.Module):
         self.tanh_score = tanh_score
         self.weight_output = weight_output
         self.weight_multiscale = weight_multiscale
+        self.cut_diff2_weights = cut_diff2_weights
 
         if self.branch_type == "fc":
             self.fc1_score = nn.Linear(31872, 512)
@@ -118,9 +122,8 @@ class LPIPS(nn.Module):
             in1 = 2 * in1  - 1
 
         # v0.0 - original release had a bug, where input was not scaled
-        in0_input, in1_input = (self.scaling_layer(in0), self.scaling_layer(in1)) if self.version=='0.1' else (in0, in1)
-        normalization = "mean"
-        in0_input, in1_input = (NormalizeImage(in0_input, normalization), NormalizeImage(in1_input, normalization))
+        in0_input, in1_input = (self.scaling_layer(in0), self.scaling_layer(in1)) if (self.version=='0.1' and not self.remove_scaling) else (in0, in1)
+        in0_input, in1_input = (NormalizeImage(in0_input, self.normalization), NormalizeImage(in1_input, self.normalization))
         outs0, outs1 = self.net.forward(in0_input), self.net.forward(in1_input)
 
         feats0, feats1, diffs = [], [], []
@@ -154,7 +157,8 @@ class LPIPS(nn.Module):
             # for l in range(1,self.L):
             #     val += res[l]
             if self.weight_patch:
-                #diffs = [(outs0[kk]-outs1[kk]) for kk in range(self.L)]
+                if self.cut_diff2_weights and self.square_diff:
+                    diffs = [(outs0[kk]-outs1[kk]) for kk in range(self.L)]
                 if not self.weight_multiscale:
                     diffs = diffs[-1:]
                     #self.lins_weights = self.lins_weights[-1:]

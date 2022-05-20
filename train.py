@@ -25,7 +25,7 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='lpips', help='distance model type [lpips] for linearly calibrated net, [baseline] for off-the-shelf network, [l2] for euclidean distance, [ssim] for Structured Similarity Image Metric')
     parser.add_argument('--net', type=str, default='alex', help='[squeeze], [alex], or [vgg] for network architectures')
     #for scores
-    parser.add_argument('--branch_type', type=str, help='how to get values for each patch: fc or conv', choices=['conv','fc'])
+    parser.add_argument('--branch_type', type=str, help='how to get values for each patch: fc or conv', choices=['conv','fc'], default="conv")
     parser.add_argument('--tanh_score', action='store_true', help='put a tanh on top of FC for scores (force to be in [0,1])')
     parser.add_argument('--square_diff', action='store_true', help='square the diff of features (done in LPIPS)')
     parser.add_argument('--normalize_feats', action='store_true', help='normalize the features before doing diff (in LPIPS)')
@@ -51,6 +51,11 @@ if __name__ == '__main__':
     parser.add_argument('--train_trunk', action='store_true', help='model trunk was trained/tuned')
     parser.add_argument('--loss', type=str, help='type of loss: L1 or L2', choices=['l1','l2'])
     parser.add_argument('--dropout_rate', type=float, default=0.0, help='dropout rate after FC')
+
+    parser.add_argument('--use_big_patches', action='store_true', help='use bigger patches (add some randomness)')
+    parser.add_argument('--norm_type', type=str, help='normalize patches', choices=['none','mean','unit','lcn'], default="none")
+    parser.add_argument('--remove_scaling', action='store_true', help='remove the scaling to adjust to stats of natural images')
+    parser.add_argument('--cut_diff2_weights', action='store_true', help='remove squaring of features for weights')
     ##### display/output options
     parser.add_argument('--testset_freq', type=int, default=5, help='frequency of evaluating the testset')
     parser.add_argument('--display_freq', type=int, default=0, help='frequency (in instances) of showing training results on screen')
@@ -84,8 +89,9 @@ if __name__ == '__main__':
     trainer = lpips.Trainer(model=opt.model, net=opt.net, use_gpu=opt.use_gpu, 
         pnet_rand=opt.from_scratch, pnet_tune=opt.train_trunk, gpu_ids=opt.gpu_ids, printNet=opt.print_net,
         is_train=True, lr=opt.lr, beta1=opt.beta1,dropout_rate=opt.dropout_rate, loss=opt.loss,
+        norm_type=opt.norm_type, remove_scaling=opt.remove_scaling,
         branch_type=opt.branch_type, tanh_score=opt.tanh_score, normalize_feats=opt.normalize_feats, square_diff=opt.square_diff, nconv=opt.nconv,
-        weight_patch=opt.weight_patch, weight_output=opt.weight_output,weight_multiscale=opt.weight_multiscale)
+        weight_patch=opt.weight_patch, weight_output=opt.weight_output,weight_multiscale=opt.weight_multiscale, cut_diff2_weights=opt.cut_diff2_weights)
 
     load_size = 64 # default value is 64
     start_epoch=1
@@ -102,10 +108,11 @@ if __name__ == '__main__':
     # load data from all test sets 
     # The random patches for the test set are only sampled once at the beginning of training in order to avoid noise in the validation loss.
     Testset = os.path.dirname(opt.datasets[0])+'/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv'
-    data_loader_testSet = dl.CreateDataLoader(Testset,dataset_mode='2afc', Nbpatches= opt.npatches, data_augmentation=False,
+    data_loader_testSet = dl.CreateDataLoader(Testset,dataset_mode='2afc', Nbpatches= opt.npatches, data_augmentation=False, use_big_patches=opt.use_big_patches,
                                               load_size = load_size, batch_size=opt.batch_size, nThreads=opt.nThreads, multiview=opt.multiview)
     tester = lpips.Tester(trainer,data_loader_testSet)
     #tester.write_patches()
+    #exit()
     
 
     total_steps = 0
@@ -119,7 +126,7 @@ if __name__ == '__main__':
     for epoch in range(start_epoch, opt.nepoch + opt.nepoch_decay + 1):
         # Load training data to sample random patches every epoch
         data_start_time = time.time()
-        data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', shuffle=True, Nbpatches=opt.npatches, data_augmentation=opt.data_augmentation,
+        data_loader = dl.CreateDataLoader(opt.datasets,dataset_mode='2afc', shuffle=True, Nbpatches=opt.npatches, data_augmentation=opt.data_augmentation, use_big_patches=opt.use_big_patches,
                                             load_size = load_size, batch_size=opt.batch_size, serial_batches=True, nThreads=opt.nThreads, multiview=opt.multiview)
         print(f"Time to load data: {time.time()-data_start_time}")
 

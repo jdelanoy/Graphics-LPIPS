@@ -13,19 +13,22 @@ import util.transforms2 as T
 import cv2
 
 class TwoAFCDataset(BaseDataset):
-    def initialize(self, dataroots, load_size=64, shuffle = False, maxNbPatches = 205, multiview=False, data_augmentation=False):
+    def initialize(self, dataroots, load_size=64, shuffle = False, maxNbPatches = 205, multiview=False, data_augmentation=False, use_big_patches=False):
         if(not isinstance(dataroots,list)):
             dataroots = [dataroots,]
         dirroots = os.path.dirname(dataroots[0])+'/'
-        root_refPatches = dirroots+'References_patches_withVP_threth0.6_bigger'
-        root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6_bigger'
+        root_refPatches = dirroots+'References_patches_withVP_threth0.6'
+        root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
+        if use_big_patches:
+            root_refPatches += "_bigger"
+            root_distPatches += "_bigger"
         #if(Trainset):           
         #    root_judges = dirroots+'judge_trainingset'
         #else:
         #    root_judges = dirroots+'judge_testset'
         nbiteration = 1
         stimuliId = 0 
-        
+        #print(root_refPatches)
 
         self.load_size = load_size
         
