@@ -83,12 +83,13 @@ class Trainer():
     def name(self):
         return self.model_name
 
-    def __init__(self, model='lpips', net='alex', colorspace='Lab', version='0.1', #original params // not used
+    def __init__(self, remove_scaling, norm_type,
+            square_diff, normalize_feats, branch_type, tanh_score,  nconv,#score output
+            weight_patch, weight_output, weight_multiscale, cut_diff2_weights,# weight output
+            model='lpips', net='alex', colorspace='Lab', version='0.1', spatial=False, #original params // not used
             pnet_rand=False, pnet_tune=False, # param about pretrained part of net
             model_path=None, use_gpu=True, gpu_ids=[0], printNet=False, # global params
-            remove_scaling=False, norm_type="none",
-            spatial=False, square_diff=True, normalize_feats=True, branch_type="conv", tanh_score = False,  nconv = 1,#score output
-            weight_patch=False, weight_output='relu', weight_multiscale = False, cut_diff2_weights=False,# weight output
+            
             is_train=False, lr=.001, beta1=0.5, dropout_rate=0, loss="l1"): # training param
         '''
         INPUTS

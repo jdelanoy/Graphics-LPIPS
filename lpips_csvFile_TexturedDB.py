@@ -19,7 +19,7 @@ import torchvision.transforms as transforms
 from lpips.trainer import get_img_patches_from_data, get_full_images
 
 
-def do_all_patches_prediction(net, path, row, multiview, use_gpu, do_plots=False,output_dir=None,weight_patch=False):
+def do_all_patches_prediction(net, path, row, multiview, use_gpu, do_plots=False,output_dir=None,weight_patch=False,use_big_patches=False):
     transform_list = []
     transform_list.append(transforms.Resize(64))
     transform_list += [transforms.ToTensor(),
@@ -29,7 +29,9 @@ def do_all_patches_prediction(net, path, row, multiview, use_gpu, do_plots=False
     dirroots = os.path.dirname(path)+'/'
     root_refPatches = dirroots+'References_patches_withVP_threth0.6'
     root_distPatches = dirroots+'PlaylistsStimuli_patches_withVP_threth0.6'
-
+    if use_big_patches:
+        root_refPatches += "_bigger"
+        root_distPatches += "_bigger"
     dist = row[1]
     model = row[0]
     MOS = float(row[2])
@@ -96,6 +98,11 @@ if __name__ == '__main__':
     parser.add_argument('--weight_output', type=str, default='relu', help='what to do on top of last fc layer for weight patch', choices=['relu','tanh','none'])
     parser.add_argument('--weight_multiscale', action='store_true', help='gives all the features to weight branch. If False, gives only last feature map')
 
+    parser.add_argument('--use_big_patches', action='store_true', help='use bigger patches (add some randomness)')
+    parser.add_argument('--norm_type', type=str, help='normalize patches', choices=['none','mean','unit','lcn'], default="none")
+    parser.add_argument('--remove_scaling', action='store_true', help='remove the scaling to adjust to stats of natural images')
+    parser.add_argument('--cut_diff2_weights', action='store_true', help='remove squaring of features for weights')
+
     parser.add_argument('--do_plots', action='store_true', help='plot the maps')
 
     parser.add_argument('--nThreads', type=int, default=4, help='number of threads to use in data loader')
@@ -109,8 +116,8 @@ if __name__ == '__main__':
 
     loss_fn = lpips.LPIPS(pretrained=True, net=opt.net,
                     use_dropout=True, model_path=opt.model_path, eval_mode=True,dropout_rate=0.0, 
-                    branch_type=opt.branch_type, tanh_score=opt.tanh_score, normalize_feats=opt.normalize_feats, square_diff=opt.square_diff, nconv=opt.nconv,
-                    weight_patch=opt.weight_patch, weight_output=opt.weight_output,weight_multiscale=opt.weight_multiscale)
+                    branch_type=opt.branch_type, tanh_score=opt.tanh_score, normalize_feats=opt.normalize_feats, square_diff=opt.square_diff, nconv=opt.nconv, norm_type=opt.norm_type, remove_scaling=opt.remove_scaling,
+                    weight_patch=opt.weight_patch, weight_output=opt.weight_output,weight_multiscale=opt.weight_multiscale, cut_diff2_weights=opt.cut_diff2_weights)
     if(opt.use_gpu):
         loss_fn.cuda()
 
@@ -135,7 +142,7 @@ if __name__ == '__main__':
                 dist = row[1]
                 model = row[0]
                 MOS = float(row[2])
-                score,weight, MOSpredicted = do_all_patches_prediction(loss_fn, opt.csvfile, row,opt.multiview, opt.use_gpu, opt.do_plots, opt.output_dir, opt.weight_patch)
+                score,weight, MOSpredicted = do_all_patches_prediction(loss_fn, opt.csvfile, row,opt.multiview, opt.use_gpu, opt.do_plots, opt.output_dir, opt.weight_patch, use_big_patches=opt.use_big_patches)
 
                 #extract all the distorsions
                 list_dist = dist.rsplit("_",6)[1:]
