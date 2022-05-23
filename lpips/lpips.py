@@ -31,10 +31,10 @@ def flatten_and_concat(list_tensor): # takes a list of tensors N_i xCxHxW input 
 # Learned perceptual metric
 class LPIPS(nn.Module):
     def __init__(self, remove_scaling, norm_type,
-            spatial, square_diff, normalize_feats, branch_type, tanh_score, nconv, #score output
+            square_diff, normalize_feats, branch_type, tanh_score, nconv, #score output
             weight_patch, weight_output, weight_multiscale, cut_diff2_weights, # weight output
             use_dropout=True, dropout_rate=0, # training param
-            pretrained=True, net='alex', version='0.1', # old params (do not use)
+            pretrained=True, net='alex', version='0.1', spatial=False, # old params (do not use)
             pnet_rand=False, pnet_tune=False, # param about pretrained part of net
             model_path=None, eval_mode=True, verbose=True): # global params
             
