@@ -19,6 +19,7 @@ from PIL import Image
 from util.visualizer import plot_patches
 import cv2
 from lpips.normalization import NormalizeImage
+from torch import linalg as LA
 
 def get_full_images(patch_paths, nb_images, nb_patches):
     images = []
@@ -74,9 +75,11 @@ def average_per_stimuli(d0, gt_score, stimulus):
     predicted_score_reshaped = torch.reshape(predicted_score, (NbuniqueStimuli,NbpatchesPerStimulus,1,1)) #(5,10,1,1) : 5 stimuli * 10 patches/stimulus => after aggregation : 5 MOS_predicted values
     patch_weight_reshaped = torch.reshape(patch_weight, (NbuniqueStimuli,NbpatchesPerStimulus,1,1))
 
-    mos_predict = torch.sum(torch.mul(patch_weight_reshaped,predicted_score_reshaped), 1, True)/torch.sum(patch_weight_reshaped,1,True)
+    #mos_predict = torch.sum(torch.mul(patch_weight_reshaped,predicted_score_reshaped), 1, True)/torch.sum(patch_weight_reshaped,1,True)
     #mos_predict = torch.mean(predicted_score_reshaped, 1, True)
 
+    mos_predict = torch.norm(predicted_score_reshaped,p=2,dim=1,keepdim=True)#/NbpatchesPerStimulus
+    #print(mos_predict,mos_predict2)
     return mos_predict, mos   
 
 class Trainer():
