@@ -31,7 +31,7 @@ class TwoAFCDataset(BaseDataset):
         #print(root_refPatches)
 
         self.load_size = load_size
-        
+        print(dataroots[0])
         #shuffle input csv file
         if(shuffle):
             shuffled_inputfile = [] 

@@ -107,7 +107,8 @@ if __name__ == '__main__':
 
     # load data from all test sets 
     # The random patches for the test set are only sampled once at the beginning of training in order to avoid noise in the validation loss.
-    Testset = os.path.dirname(opt.datasets[0])+'/TexturedDB_20%_TestList_withnbPatchesPerVP_threth0.6.csv'
+    dset_name = opt.datasets[0].split("TrainList")[1]
+    Testset = os.path.dirname(opt.datasets[0])+'/TexturedDB_20%_TestList'+dset_name                             
     data_loader_testSet = dl.CreateDataLoader(Testset,dataset_mode='2afc', Nbpatches= opt.npatches, data_augmentation=False, use_big_patches=opt.use_big_patches,
                                               load_size = load_size, batch_size=opt.batch_size, nThreads=opt.nThreads, multiview=opt.multiview)
     tester = lpips.Tester(trainer,data_loader_testSet)
