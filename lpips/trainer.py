@@ -75,11 +75,12 @@ def average_per_stimuli(d0, gt_score, stimulus):
     predicted_score_reshaped = torch.reshape(predicted_score, (NbuniqueStimuli,NbpatchesPerStimulus,1,1)) #(5,10,1,1) : 5 stimuli * 10 patches/stimulus => after aggregation : 5 MOS_predicted values
     patch_weight_reshaped = torch.reshape(patch_weight, (NbuniqueStimuli,NbpatchesPerStimulus,1,1))
 
-    #mos_predict = torch.sum(torch.mul(patch_weight_reshaped,predicted_score_reshaped), 1, True)/torch.sum(patch_weight_reshaped,1,True)
+    mos_predict = torch.sum(torch.mul(patch_weight_reshaped,predicted_score_reshaped), 1, True)/torch.sum(patch_weight_reshaped,1,True)
     #mos_predict = torch.mean(predicted_score_reshaped, 1, True)
-
-    mos_predict = torch.norm(predicted_score_reshaped,p=2,dim=1,keepdim=True)#/NbpatchesPerStimulus
-    #print(mos_predict,mos_predict2)
+    #p_norm=1
+    #mos_predict = torch.pow(torch.sum(torch.pow(torch.mul(patch_weight_reshaped,predicted_score_reshaped),p_norm), 1, True)/torch.sum(patch_weight_reshaped,1,True),p_norm)
+    
+    #mos_predict = torch.norm(predicted_score_reshaped,p=float("inf"),,dim=1,keepdim=True)#/NbpatchesPerStimulus
     return mos_predict, mos   
 
 class Trainer():

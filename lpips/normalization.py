@@ -44,9 +44,14 @@ def LocalContrastNorm(image,radius=9):
     per_img_mean = s_deviation.mean(dim=[1,2,3],keepdim=True)
     
     ## Divisive Normalization
-    divisor = torch.maximum(per_img_mean,s_deviation)
-    divisor = torch.maximum(divisor, torch.Tensor([1e-4]).to(image.get_device()))
-    new_image = centered_image / divisor
+    #divisor = torch.maximum(per_img_mean,s_deviation)
+    #divisor = torch.maximum(divisor, torch.Tensor([1e-4]).to(image.get_device()))
+    #new_image = centered_image / divisor
+
+    s_deviation = torch.maximum(s_deviation, torch.Tensor([1]).to(image.get_device()))
+    new_image = centered_image / (s_deviation)
+    
+    
     return new_image
 
 def MeanNorm(image):
